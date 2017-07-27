@@ -33,6 +33,9 @@ string hasData(string s) {
 }
 
 
+static double last_s = 0.0;
+
+
 int main()
 {
   uWS::Hub h;
@@ -87,25 +90,42 @@ int main()
  //          next_x_vals.push_back(car_x+(dist_inc*i)*cos(NUtils::deg2rad(car_yaw)));
  //          next_y_vals.push_back(car_y+(dist_inc*i)*sin(NUtils::deg2rad(car_yaw)));
  //    }
+            cout << car_s << ", " << end_path_s << ", " << last_s;
+            const double delta_s = 0.4;
+            const int n = 2000 / 20;
 
-            const double delta_s = 0.2;
-            const int n = 1000 / 20;
-            double s = car_s;
-            for (int i = 0; i < n; ++i)
+            const int path_size = previous_path_x.size();
+            for (int i = 0; i < path_size; ++i)
             {
-              const auto p = wp.getXY_interpolated(s, -6.0);
-              next_x_vals.push_back(p(0));
-              next_y_vals.push_back(p(1));
-              s += delta_s;
+              next_x_vals.push_back(previous_path_x[i]);
+              next_y_vals.push_back(previous_path_y[i]);
             }
 
-          	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+            double s = car_s;
+
+            if (path_size)
+            {
+              s = last_s;
+//              const double d = NUtils::distance(car_x, car_y, previous_path_x[path_size-1], previous_path_y[path_size-1]);
+//              s += d;
+            }
+
+            for (int i = path_size; i < n; ++i)
+            {
+                s += delta_s;
+                const auto p = wp.getXY_interpolated(s, -6.0);
+                last_s = s;
+                //cout << s << ", " << p(0) << ", " << p(1) << endl;
+                next_x_vals.push_back(p(0));
+                next_y_vals.push_back(p(1));
+            }
+            cout << ", " << previous_path_x.size() << ", " << next_x_vals.size() << endl;
+
           	msgJson["next_x"] = next_x_vals;
           	msgJson["next_y"] = next_y_vals;
 
           	auto msg = "42[\"control\","+ msgJson.dump()+"]";
-
-          	//this_thread::sleep_for(chrono::milliseconds(100));
+            //this_thread::sleep_for(chrono::milliseconds(40));
           	ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }
       } else {
