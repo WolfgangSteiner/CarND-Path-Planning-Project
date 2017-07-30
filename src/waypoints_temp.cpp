@@ -4,8 +4,8 @@
 #include <fstream>
 #include <sstream>
 #include <cmath>
-#include "waypoints.h"
-#include "waypoint.h"
+#include "Waypoints.h"
+#include "Waypoint.h"
 #include "utils.h"
 //======================================================================================================================
 using Eigen::Vector2d;
