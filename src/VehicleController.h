@@ -4,7 +4,9 @@
 //==============================================================================================
 #include "Eigen-3.3/Eigen/Core"
 #include <vector>
+#include <memory>
 #include "Waypoints.h"
+#include "Trajectory.h"
 //==============================================================================================
 struct CarState;
 //==============================================================================================
@@ -23,10 +25,20 @@ void UpdateTrajectory(
     std::vector<double>& aNextPathY);
 
 private:
+  using TTrajectoryPtr = std::shared_ptr<Trajectory>;
+
+private:
   std::vector<Eigen::VectorXd> mCurrentTrajectory;
+  std::vector<Eigen::VectorXd> mPreviousTrajectory;
   Eigen::VectorXd mCurrentState;
+  Eigen::VectorXd mDesiredState;
+
+  TTrajectoryPtr mpCurrentTrajectory;
+
   Waypoints mWaypoints;
-  double last_s{0.0};
+  double mLastS{0.0};
+  double mCurrentTime{0.0};
+  double mTimeHorizon = 0.5;
 };
 
 

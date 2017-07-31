@@ -7,7 +7,7 @@ add_definitions(-std=c++11 -O2)
 set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
-set(sources src/main.cpp src/Waypoints.cpp src/Utils.cpp src/VehicleController.cpp)
+set(sources src/main.cpp src/Waypoints.cpp src/Utils.cpp src/VehicleController.cpp src/Trajectory.cpp)
 
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -22,5 +22,8 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 
 add_executable(path_planning ${sources})
+add_executable(tests src/test/test.cpp src/test/trajectory.cpp src/Trajectory.cpp)
 
 target_link_libraries(path_planning z ssl uv uWS)
+target_link_libraries(tests)
+
