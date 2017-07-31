@@ -15,8 +15,13 @@ public:
     const double start_t,
     const double duration);
 
+  Trajectory(double end_s_d, double end_d, double delta_s, double delta_t);
+
   std::vector<Eigen::VectorXd> GetTrajectory() const;
   Eigen::VectorXd EvalAt(double t) const;
+
+  void Finalize(const Eigen::VectorXd& aStartState, double aStartTime);
+  bool IsFinished(double t) const;
 
 
 public:
@@ -27,10 +32,13 @@ public:
 
 
 private:
-  Eigen::VectorXd s_coeffs_;
-  Eigen::VectorXd d_coeffs_;
-  double duration_{0.0};
-  double start_t_{0.0};
+  Eigen::VectorXd mStartState;
+  Eigen::VectorXd mEndState;
+  Eigen::VectorXd mSCoeffs;
+  Eigen::VectorXd mDCoeffs;
+  bool mIsFinalized{false};
+  double mDuration{0.0};
+  double mStartTime{0.0};
   double current_t_{0.0};
   double dt_{0.02};
 };

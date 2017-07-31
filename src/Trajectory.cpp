@@ -1,6 +1,8 @@
 //==============================================================================================
-#include "Eigen-3.3/Eigen/Eigen"
 #include "Trajectory.h"
+//==============================================================================================
+#include "Eigen-3.3/Eigen/Eigen"
+#include <assert.h>
 //==============================================================================================
 using Eigen::VectorXd;
 using Eigen::MatrixXd;
@@ -108,29 +110,58 @@ Trajectory::Trajectory(
   const Eigen::VectorXd& end_state,
   const double start_t,
   const double duration)
-: start_t_(start_t)
-, duration_(duration)
+: mStartTime(start_t)
+, mDuration(duration)
+, mIsFinalized(true)
 {
-  s_coeffs_ = SCalcTrajectoryCoefficients(start_state.head(3), end_state.head(3), duration);
-  d_coeffs_ = SCalcTrajectoryCoefficients(start_state.segment(3,3), end_state.segment(3,3), duration);
+  mSCoeffs = SCalcTrajectoryCoefficients(start_state.head(3), end_state.head(3), duration);
+  mDCoeffs = SCalcTrajectoryCoefficients(start_state.segment(3,3), end_state.segment(3,3), duration);
 }
+
+
+//----------------------------------------------------------------------------------------------
+
+Trajectory::Trajectory(double end_s_d, double end_d, double delta_s, double delta_t)
+: mStartTime(0.0)
+, mDuration(delta_t)
+{
+  mStartState = VectorXd::Zero(6);
+  mEndState = VectorXd(6);
+  mEndState << delta_s, end_s_d, 0.0, end_d, 0.0, 0.0;
+}
+
+
+//----------------------------------------------------------------------------------------------
+
+void Trajectory::Finalize(const Eigen::VectorXd& aStartState, double aStartTime)
+{
+  mStartState = aStartState;
+  mEndState(0) += mStartState(0);
+  mStartTime = aStartTime;
+  mSCoeffs = SCalcTrajectoryCoefficients(mStartState.head(3), mEndState.head(3), mDuration);
+  mDCoeffs = SCalcTrajectoryCoefficients(mStartState.segment(3,3), mEndState.segment(3,3), mDuration);
+  mIsFinalized = true;
+}
+
 
 //----------------------------------------------------------------------------------------------
 
 Eigen::VectorXd Trajectory::EvalAt(double t) const
 {
-  if (t > start_t_ + duration_)
+  assert(mIsFinalized);
+
+  if (t > mStartTime + mDuration)
   {
-    VectorXd state = SEvalStateAt(s_coeffs_, d_coeffs_, duration_);
+    VectorXd state = SEvalStateAt(mSCoeffs, mDCoeffs, mDuration);
     VectorXd speed_vector = VectorXd::Zero(6);
     speed_vector(0) = state(1);
     speed_vector(3) = state(4);
-    state += (t - start_t_ - duration_) * speed_vector;
+    state += (t - mStartTime - mDuration) * speed_vector;
     return state;
   }
   else
   {
-    return SEvalStateAt(s_coeffs_, d_coeffs_, t - start_t_);
+    return SEvalStateAt(mSCoeffs, mDCoeffs, t - mStartTime);
   }
 }
 
@@ -141,12 +172,20 @@ std::vector<Eigen::VectorXd> Trajectory::GetTrajectory() const
 {
   vector<Eigen::VectorXd> trajectory;
 
-  for (double t = 0; t < duration_; t += dt_)
+  for (double t = 0; t < mDuration; t += dt_)
   {
-    trajectory.push_back(SEvalStateAt(s_coeffs_, d_coeffs_, t));
+    trajectory.push_back(SEvalStateAt(mSCoeffs, mDCoeffs, t));
   }
 
   return trajectory;
+}
+
+
+//----------------------------------------------------------------------------------------------
+
+bool Trajectory::IsFinished(double t) const
+{
+  return t >= mStartTime + mDuration;
 }
 
 
