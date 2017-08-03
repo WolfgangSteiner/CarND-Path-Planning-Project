@@ -94,46 +94,98 @@ int Waypoints::PreviousWaypoint(int i) const
 //----------------------------------------------------------------------------------------------
 
 // Transform from Cartesian x,y coordinates to Frenet s,d coordinates
-Vector2d Waypoints::CalcFrenet(const Vector2d& p, double theta) const
+//Vector2d Waypoints::CalcFrenet(const Vector2d& p, double theta) const
+//{
+//	const int idx_next_wp = NextWaypoint(p(0),p(1), theta);
+//	const int idx_prev_wp = PreviousWaypoint(idx_next_wp);
+//
+//  const Waypoint& next_wp = at(idx_next_wp);
+//  const Waypoint& prev_wp = at(idx_prev_wp);
+//
+//	const double n_x = next_wp.x_ - prev_wp.x_;
+//	const double n_y = next_wp.y_ - prev_wp.y_;
+//	const double x_x = p(0) - prev_wp.x_;
+//	const double x_y = p(1) - prev_wp.y_;
+//
+//	// find the projection of x onto n
+//	const double proj_norm = (x_x * n_x + x_y * n_y)/(n_x * n_x + n_y * n_y);
+//	const double proj_x = proj_norm * n_x;
+//	const double proj_y = proj_norm * n_y;
+//
+//	//see if d value is positive or negative by comparing it to a center point
+//	const double center_x = 1000-prev_wp.x_;
+//	const double center_y = 2000-prev_wp.y_;
+//	const double centerToPos = NUtils::distance(center_x,center_y,x_x,x_y);
+//	const double centerToRef = NUtils::distance(center_x,center_y,proj_x,proj_y);
+//
+//	double frenet_d = NUtils::distance(x_x, x_y, proj_x, proj_y);
+//	if(centerToPos <= centerToRef)
+//	{
+//		frenet_d *= -1;
+//	}
+//
+//	// calculate s value
+//	double frenet_s = 0;
+//	for(int i = 0; i < idx_prev_wp; i++)
+//	{
+//		frenet_s += NUtils::distance(at(i), at(i+1));
+//	}
+//
+//	frenet_s += NUtils::distance(0,0,proj_x,proj_y);
+//
+//  return Vector2d(frenet_s, frenet_d);
+//}
+
+//----------------------------------------------------------------------------------------------
+
+double Waypoints::Error(const Eigen::Vector2d& p, double s) const
 {
-	const int idx_next_wp = NextWaypoint(p(0),p(1), theta);
-	const int idx_prev_wp = PreviousWaypoint(idx_next_wp);
+  return pow(p(0) - x_spline_(s), 2) + pow(p(1) - y_spline_(s), 2);
+}
 
-  const Waypoint& next_wp = at(idx_next_wp);
-  const Waypoint& prev_wp = at(idx_prev_wp);
+//----------------------------------------------------------------------------------------------
 
-	const double n_x = next_wp.x_ - prev_wp.x_;
-	const double n_y = next_wp.y_ - prev_wp.y_;
-	const double x_x = p(0) - prev_wp.x_;
-	const double x_y = p(1) - prev_wp.y_;
+double Waypoints::ErrorDeriv(const Eigen::Vector2d& p, double s) const
+{
+  return -2.0 * (p(0) - x_spline_(s)) * x_spline_.deriv(1, s)
+         - 2.0 * (p(1) - y_spline_(s)) * y_spline_.deriv(1,s);
+}
 
-	// find the projection of x onto n
-	const double proj_norm = (x_x * n_x + x_y * n_y)/(n_x * n_x + n_y * n_y);
-	const double proj_x = proj_norm * n_x;
-	const double proj_y = proj_norm * n_y;
+//----------------------------------------------------------------------------------------------
 
-	//see if d value is positive or negative by comparing it to a center point
-	const double center_x = 1000-prev_wp.x_;
-	const double center_y = 2000-prev_wp.y_;
-	const double centerToPos = NUtils::distance(center_x,center_y,x_x,x_y);
-	const double centerToRef = NUtils::distance(center_x,center_y,proj_x,proj_y);
+Eigen::Vector2d Waypoints::CalcFrenet(const Eigen::Vector2d& p, double aStartS) const
+{
+  // Perform gradient descent in order to find the point on the spline that is closest to p:
+  const double eps = 1.0e-6;
+  double s = aStartS;
+  const double kGamma = 0.01;
+  const double kPrecision = 1e-6;
+  double PreviousStepSize = s;
 
-	double frenet_d = NUtils::distance(x_x, x_y, proj_x, proj_y);
-	if(centerToPos <= centerToRef)
-	{
-		frenet_d *= -1;
-	}
+  while (PreviousStepSize > kPrecision)
+  {
+    const double next_s = s - kGamma * ErrorDeriv(p, s);
+    PreviousStepSize = std::abs(next_s - s);
+    s = next_s;
+  }
 
-	// calculate s value
-	double frenet_s = 0;
-	for(int i = 0; i < idx_prev_wp; i++)
-	{
-		frenet_s += NUtils::distance(at(i), at(i+1));
-	}
+  const Vector2d p_spline(x_spline_(s), y_spline_(s));
+  std::cout << p << ", " << p_spline << std::endl;
 
-	frenet_s += NUtils::distance(0,0,proj_x,proj_y);
+  const Vector2d p_delta = (p - p_spline).array() / GetNormalAt(s).array();
+  std::cout << "p_delta:" << p_delta << std::endl;
+  std::cout << "normal: " << GetNormalAt(s) << std::endl;
+  // p = p_spline + d * n
+  // d = (p-p_spline) / n
+  const double d = 0.5 * (p_delta(0) + p_delta(1));
+  return Vector2d(s, d);
+}
 
-  return Vector2d(frenet_s, frenet_d);
+//----------------------------------------------------------------------------------------------
+
+Vector2d Waypoints::GetNormalAt(double s) const
+{
+  return Vector2d(-y_spline_.deriv(1, s), x_spline_.deriv(1, s));
 }
 
 
@@ -183,10 +235,7 @@ Eigen::Vector2d Waypoints::getXY_interpolated(double s, double d) const
     s += max_s_;
   }
 
-  const Vector2d n(-y_spline_.deriv(1, s), x_spline_.deriv(1, s));
-  const Vector2d p(x_spline_(s), y_spline_(s));
-
-  return p + n * d;
+  return Vector2d(x_spline_(s), y_spline_(s)) + GetNormalAt(s) * d;
 }
 
 

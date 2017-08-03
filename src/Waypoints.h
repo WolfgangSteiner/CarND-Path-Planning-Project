@@ -18,9 +18,11 @@ public:
   int NextWaypoint(double x, double y, double theta) const;
   int PreviousWaypoint(int i) const;
 
-  Eigen::Vector2d CalcFrenet(const Eigen::Vector2d& p, double theta) const;
+  //Eigen::Vector2d CalcFrenet(const Eigen::Vector2d& p, double theta) const;
+  Eigen::Vector2d CalcFrenet(const Eigen::Vector2d& p, double s_start) const;
   Eigen::Vector2d getXY(double s, double d) const;
   Eigen::Vector2d getXY_interpolated(double s, double d) const;
+  Eigen::Vector2d GetNormalAt(double s) const;
 
   const Waypoint& at(int idx) const;
 
@@ -29,6 +31,9 @@ public:
 
 private:
   void fit_splines();
+  double Error(const Eigen::Vector2d& p, double s) const;
+  double ErrorDeriv(const Eigen::Vector2d& p, double s) const;
+
 
 private:
   tk::spline x_spline_;

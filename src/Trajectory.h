@@ -6,16 +6,30 @@
 #include <vector>
 //==============================================================================================
 
-class Trajectory
+//==============================================================================================
+
+class TTrajectory
 {
 public:
-  Trajectory(
+  using TTrajectoryPtr = std::shared_ptr<TTrajectory>;
+
+public:
+  TTrajectory();
+
+  TTrajectory(
     const Eigen::VectorXd& start_state,
     const Eigen::VectorXd& end_state,
     const double start_t,
     const double duration);
 
-  Trajectory(double end_s_d, double end_d, double delta_s, double delta_t);
+  TTrajectory(double end_s_d, double end_d, double delta_s, double delta_t);
+
+  static TTrajectoryPtr SConstantVelocityTrajectory(
+    double aCurrentS, double aCurrentD, double aVelocity, double aCurrentTime, double aDuration);
+
+  static TTrajectoryPtr SVelocityKeepingTrajectory(
+    const Eigen::VectorXd& aStartState, double aTargetVelocity, double aCurrentTime, double aDuration);
+
 
   std::vector<Eigen::VectorXd> GetTrajectory() const;
   Eigen::VectorXd EvalAt(double t) const;
@@ -23,6 +37,16 @@ public:
   void Finalize(const Eigen::VectorXd& aStartState, double aStartTime);
   bool IsFinished(double t) const;
 
+  std::tuple<double,double> MinDistanceToTrajectory(const TTrajectoryPtr apOtherTrajectory) const;
+
+  double JerkCost() const;
+  double SafetyDistanceCost(const TTrajectoryPtr apOtherTrajectory) const;
+
+  void AddCost(double c);
+  double Cost() const;
+
+  double MinVelocity() const;
+  double MaxVelocity() const;
 
 public:
   static double SDerivCoeff(int idx, int deriv);
@@ -39,10 +63,9 @@ private:
   bool mIsFinalized{false};
   double mDuration{0.0};
   double mStartTime{0.0};
-  double current_t_{0.0};
-  double dt_{0.02};
+  double mTimeStep{0.02};
+  double mCost{0.0};
 };
-
 
 //==============================================================================================
 #endif //TRAJECTORY_H

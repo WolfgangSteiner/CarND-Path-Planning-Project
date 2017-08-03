@@ -1,61 +1,57 @@
 //==============================================================================================
+// Created by Wolfgang Steiner
+//==============================================================================================
+#include "OtherCar.h"
+#include "Trajectory.h"
 #include "Utils.h"
 //==============================================================================================
-#include <assert.h>
-#include <cmath>
-#include <vector>
-//==============================================================================================
 
-double NUtils::deg2rad(double x)
+TOtherCar::TOtherCar(const std::vector<double>& aOtherCarState)
 {
-  return x * M_PI / 180;
+  mId = aOtherCarState[0];
+  mState = Eigen::VectorXd(6);
+  mState << aOtherCarState[1], aOtherCarState[2], aOtherCarState[3],
+            aOtherCarState[4], aOtherCarState[5], aOtherCarState[6];
+}
+
+//----------------------------------------------------------------------------------------------
+
+bool TOtherCar::IsInLane(int aLaneNumber) const
+{
+  return NUtils::SLaneNumberForD(D()) == aLaneNumber;
+}
+
+//----------------------------------------------------------------------------------------------
+
+double TOtherCar::S() const
+{
+  return mState(4);
 }
 
 
 //----------------------------------------------------------------------------------------------
 
-double NUtils::rad2deg(double x)
+double TOtherCar::D() const
 {
-  return x * 180 / M_PI;
+  return mState(5);
 }
 
 
 //----------------------------------------------------------------------------------------------
 
-double NUtils::distance(double x1, double y1, double x2, double y2)
+double TOtherCar::Velocity() const
 {
-   return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
+  const double vx = mState(2);
+  const double vy = mState(3);
+  return sqrt(vx*vx + vy*vy);
 }
 
 
 //----------------------------------------------------------------------------------------------
 
-double NUtils::distance(const Waypoint& wp1, const Waypoint& wp2)
+TTrajectory::TTrajectoryPtr TOtherCar::CurrentTrajectory(double aCurrentTime, double aDuration) const
 {
-  return NUtils::distance(wp1.x_, wp1.y_, wp2.x_, wp2.y_);
-}
-
-
-//----------------------------------------------------------------------------------------------
-
-int NUtils::SLaneNumberForD(double d)
-{
-  if (d > 0.0 || d < -12.0)
-  {
-    return -1;
-  }
-
-  return d < -8.0 ? 0 : d < -4.0 ? 1 : 2;
-}
-
-
-//----------------------------------------------------------------------------------------------
-
-double NUtils::SDForLaneNumber(int aLaneNumber)
-{
-  static std::vector<double> sDVector = {-10.0, -6.0, -2.0};
-  assert(aLaneNumber >= 0 && aLaneNumber <= 2);
-  return sDVector[aLaneNumber];
+  return TTrajectory::SConstantVelocityTrajectory(S(), D(), Velocity(), aCurrentTime, aDuration);
 }
 
 

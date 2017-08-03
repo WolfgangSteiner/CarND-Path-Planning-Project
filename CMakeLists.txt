@@ -2,12 +2,15 @@ project(Path_Planning)
 
 cmake_minimum_required (VERSION 3.5)
 
-add_definitions(-std=c++11 -O2)
+add_definitions(-std=c++11 -g)
 
 set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
-set(sources src/main.cpp src/Waypoints.cpp src/Utils.cpp src/VehicleController.cpp src/Trajectory.cpp)
+set(sources src/main.cpp src/Waypoints.cpp src/Utils.cpp src/VehicleController.cpp
+        src/Trajectory.cpp src/VehicleState.cpp src/KeepLaneState.cpp
+        src/SensorFusion.cpp src/SensorFusion.h src/OtherCar.cpp
+        src/TrajectoryCollection.cpp src/StateMachine.cpp)
 
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")

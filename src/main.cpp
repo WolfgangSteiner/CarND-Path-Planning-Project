@@ -38,7 +38,7 @@ string hasData(string s) {
 int main()
 {
   uWS::Hub h;
-  VehicleController vehicle_controller;
+  TVehicleController vehicle_controller;
 
   h.onMessage([&vehicle_controller](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
@@ -66,7 +66,7 @@ int main()
           	const double car_speed = double(j[1]["speed"]) * 0.447;
           	//const double end_path_s = j[1]["end_path_s"];
           	//const double end_path_d = j[1]["end_path_d"];
-            const CarState kCarState = { car_x, car_y, car_s, car_d, car_yaw, car_speed };
+            const CarState kCarState = { car_x, car_y, car_s, -car_d, car_yaw, car_speed };
 
           	auto previous_path_x = j[1]["previous_path_x"];
           	auto previous_path_y = j[1]["previous_path_y"];
@@ -78,7 +78,8 @@ int main()
             vehicle_controller.UpdateTrajectory(
               previous_path_x, previous_path_y,
               kCarState,
-              next_x_vals, next_y_vals);
+              next_x_vals, next_y_vals,
+              sensor_fusion);
 
           	json msgJson;
           	msgJson["next_x"] = next_x_vals;

@@ -2,25 +2,22 @@
 #ifndef VEHICLECONTROLLER_H
 #define VEHICLECONTROLLER_H
 //==============================================================================================
+#include "Waypoints.h"
+#include "Trajectory.h"
+#include "StateMachine.h"
+//==============================================================================================
 #include "Eigen-3.3/Eigen/Core"
 #include <vector>
 #include <deque>
 #include <memory>
-#include "Waypoints.h"
-#include "Trajectory.h"
 //==============================================================================================
 struct CarState;
 //==============================================================================================
 
-class VehicleController
+class TVehicleController
 {
 public:
-  VehicleController();
-
-
-public:
-  using TTrajectoryPtr = std::shared_ptr<Trajectory>;
-
+  TVehicleController();
 
 public:
   void UpdateTrajectory(
@@ -28,25 +25,23 @@ public:
       const std::vector<double>& aPreviousPathY,
       const CarState& aCarState,
       std::vector<double>& aNextPathX,
-      std::vector<double>& aNextPathY);
+      std::vector<double>& aNextPathY,
+      const std::vector<std::vector<double>>& aSensorFusion);
 
-  void QueueTrajectory(TTrajectoryPtr apTrajectory);
-  void QueueTrajectory(double aEndVelocity, double aEndD, double aDeltaS, double aDeltaT);
+//  void QueueTrajectory(TTrajectoryPtr apTrajectory);
+//  void QueueTrajectory(double aEndVelocity, double aEndD, double aDeltaS, double aDeltaT);
 
 
 private:
-  std::vector<Eigen::VectorXd> mCurrentTrajectory;
-  std::vector<Eigen::VectorXd> mPreviousTrajectory;
   Eigen::VectorXd mCurrentState;
-  Eigen::VectorXd mDesiredState;
-
-  TTrajectoryPtr mpCurrentTrajectory;
-  std::deque<TTrajectoryPtr> mTrajectoryQueue;
-
+  TTrajectory::TTrajectoryPtr mpCurrentTrajectory;
+  TStateMachine mStateMachine;
   Waypoints mWaypoints;
+
   double mLastS{0.0};
   double mCurrentTime{0.0};
-  double mTimeHorizon = 0.5;
+  double mTimeHorizon{1.0};
+  bool mIsInitialized{false};
 };
 
 
