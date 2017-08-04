@@ -6,13 +6,16 @@
 #include "Utils.h"
 //==============================================================================================
 
-TOtherCar::TOtherCar(const std::vector<double>& aOtherCarState)
-{
-  mId = aOtherCarState[0];
-  mState = Eigen::VectorXd(6);
-  mState << aOtherCarState[1], aOtherCarState[2], aOtherCarState[3],
-            aOtherCarState[4], aOtherCarState[5], aOtherCarState[6];
-}
+TOtherCar::TOtherCar(const int aId, double aX, double aY, double aVx, double aVy, double aS, double aD, double aVelocity)
+: mId{aId}
+, mX{aX}
+, mY{aY}
+, mVx{aVx}
+, mVy{aVy}
+, mS{aS}
+, mD{aD}
+, mVelocity{aVelocity}
+{}
 
 //----------------------------------------------------------------------------------------------
 
@@ -25,7 +28,7 @@ bool TOtherCar::IsInLane(int aLaneNumber) const
 
 double TOtherCar::S() const
 {
-  return mState(4);
+  return mS;
 }
 
 
@@ -33,7 +36,22 @@ double TOtherCar::S() const
 
 double TOtherCar::D() const
 {
-  return mState(5);
+  return mD;
+}
+
+
+//----------------------------------------------------------------------------------------------
+
+double TOtherCar::X() const
+{
+  return mX;
+}
+
+//----------------------------------------------------------------------------------------------
+
+double TOtherCar::Y() const
+{
+  return mY;
 }
 
 
@@ -41,9 +59,7 @@ double TOtherCar::D() const
 
 double TOtherCar::Velocity() const
 {
-  const double vx = mState(2);
-  const double vy = mState(3);
-  return sqrt(vx*vx + vy*vy);
+  return mVelocity;
 }
 
 

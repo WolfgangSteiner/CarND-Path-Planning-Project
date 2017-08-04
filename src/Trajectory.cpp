@@ -12,7 +12,7 @@ using Eigen::MatrixXd;
 using std::vector;
 //==============================================================================================
 
-static double SSafetyDistanceCost(double aDistance, double aVelocity)
+double TTrajectory::SSafetyDistanceCost(double aDistance, double aVelocity)
 {
   const double kSafetyDistance = aVelocity * 3.6 / 2.0;
   if (aDistance > 1.25 * kSafetyDistance)
@@ -76,14 +76,14 @@ static VectorXd SCalcVelocityKeepingSCoefficients(
   const double T3 = T2 * T;
 
   MatrixXd A(2,2);
-  A << 2 * T2, 4 * T3, 6 * T, 12 * T3;
+  A << 3 * T2, 4 * T3, 6 * T, 12 * T2;
 
   VectorXd b(2);
-  b << aTargetVelocity - aStartState(0) - aStartState(2) * T,
+  b << aTargetVelocity - aStartState(1) - aStartState(2) * T,
        0.0 - aStartState(2);
 
   Eigen::Vector2d x = A.colPivHouseholderQr().solve(b);
-  std::cout << "x: " << x << std::endl;
+  //std::cout << "x: " << x << std::endl;
 
   assert(x(0) == x(0));
   assert(x(1) == x(1));
@@ -241,9 +241,9 @@ void TTrajectory::Finalize(const Eigen::VectorXd& aStartState, double aStartTime
   mSCoeffs = SCalcTrajectoryCoefficients(mStartState.head(3), mEndState.head(3), mDuration);
   mDCoeffs = SCalcTrajectoryCoefficients(mStartState.segment(3,3), mEndState.segment(3,3), mDuration);
 
-  std::cout << "mStartState: " << mStartState << std::endl;
-  std::cout << "mEndState: " << mEndState << std::endl;
-  std::cout << "mSCoeffs: " << mSCoeffs << std::endl;
+  //std::cout << "mStartState: " << mStartState << std::endl;
+  //std::cout << "mEndState: " << mEndState << std::endl;
+  //std::cout << "mSCoeffs: " << mSCoeffs << std::endl;
 
   mIsFinalized = true;
 }
@@ -302,6 +302,8 @@ std::tuple<double,double> TTrajectory::MinDistanceToTrajectory(const TTrajectory
   double MinDist = 1.0e9;
   double MinDist_t = 0.0;
 
+  assert(mDuration <= 10.0);
+
   while (t < mStartTime + mDuration)
   {
     Eigen::VectorXd s1 = EvalAt(t);
@@ -359,13 +361,13 @@ double TTrajectory::JerkCost() const
 
 //----------------------------------------------------------------------------------------------
 
-double TTrajectory::SafetyDistanceCost(const TTrajectoryPtr apOtherTrajectory) const
+std::tuple<double,double> TTrajectory::SafetyDistanceCost(const TTrajectoryPtr apOtherTrajectory) const
 {
   double kMinDist, kMinDist_t;
   std::tie(kMinDist, kMinDist_t) = MinDistanceToTrajectory(apOtherTrajectory);
   const double kMinDistSpeed = SEvalAt(mSCoeffs, kMinDist_t, 1);
 
-  return SSafetyDistanceCost(kMinDist, kMinDistSpeed);
+  return std::make_pair(SSafetyDistanceCost(kMinDist, kMinDistSpeed), kMinDist);
 }
 
 
@@ -375,7 +377,7 @@ double TTrajectory::MinVelocity() const
 {
   double MinVelocity = 1e9;
 
-  for (double t = 0; t < mDuration; t+=mTimeStep)
+  for (double t = 0; t <= mDuration; t+=mTimeStep)
   {
     MinVelocity = std::min(MinVelocity, SEvalAt(mSCoeffs, t, 1));
   }
@@ -390,7 +392,7 @@ double TTrajectory::MaxVelocity() const
 {
   double MaxVelocity = -1e9;
 
-  for (double t = 0; t < mDuration; t+=mTimeStep)
+  for (double t = 0; t <= mDuration; t+=mTimeStep)
   {
     MaxVelocity = std::max(MaxVelocity, SEvalAt(mSCoeffs, t, 1));
   }

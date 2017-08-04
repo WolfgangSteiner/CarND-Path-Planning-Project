@@ -27,8 +27,9 @@ public:
 private:
   double mMaxVelocity{22};
   double mVelocityCostFactor{1.0};
-  double mJerkCostFactor{1.0};
-  double mTimeCostFactor{0.5};
+  double mJerkCostFactor{0.01};
+  double mTimeCostFactor{100};
+  double mSafetyDistanceFactor{1000};
 };
 
 

@@ -8,10 +8,10 @@
 #include "spline.h"
 //==============================================================================================
 
-class Waypoints
+class TWaypoints
 {
 public:
-  Waypoints();
+  TWaypoints();
 
 public:
   int ClosestWaypoint(double x, double y) const;

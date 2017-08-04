@@ -5,6 +5,7 @@
 #define SENSORFUSION_H
 //==============================================================================================
 #include "OtherCar.h"
+#include "Waypoints.h"
 //==============================================================================================
 #include <vector>
 #include <list>
@@ -14,7 +15,11 @@
 class TSensorFusion
 {
 public:
-  TSensorFusion(const std::vector<std::vector<double>>& aSensorFusionData);
+  TSensorFusion(
+    const std::vector<std::vector<double>>& aSensorFusionData,
+    const TWaypoints& aWaypoints,
+    double aDelayT);
+
   std::list<TOtherCar> OtherLeadingCarsInLane(const Eigen::VectorXd& aState) const;
 
 private:

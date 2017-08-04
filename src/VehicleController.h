@@ -36,7 +36,7 @@ private:
   Eigen::VectorXd mCurrentState;
   TTrajectory::TTrajectoryPtr mpCurrentTrajectory;
   TStateMachine mStateMachine;
-  Waypoints mWaypoints;
+  TWaypoints mWaypoints;
 
   double mLastS{0.0};
   double mCurrentTime{0.0};

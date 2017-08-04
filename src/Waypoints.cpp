@@ -11,7 +11,7 @@
 using Eigen::Vector2d;
 //======================================================================================================================
 
-Waypoints::Waypoints()
+TWaypoints::TWaypoints()
 {
   std::string map_file_ = "../data/highway_map.csv";
   // The max s value before wrapping around the track back to 0
@@ -34,7 +34,7 @@ Waypoints::Waypoints()
 
 //----------------------------------------------------------------------------------------------
 
-const Waypoint& Waypoints::at(int idx) const
+const Waypoint& TWaypoints::at(int idx) const
 {
   return waypoints_[idx];
 }
@@ -42,7 +42,7 @@ const Waypoint& Waypoints::at(int idx) const
 
 //----------------------------------------------------------------------------------------------
 
-int Waypoints::ClosestWaypoint(double x, double y) const
+int TWaypoints::ClosestWaypoint(double x, double y) const
 {
 	double closestLen = 100000; //large number
 	int closestWaypoint = 0;
@@ -66,7 +66,7 @@ int Waypoints::ClosestWaypoint(double x, double y) const
 
 //----------------------------------------------------------------------------------------------
 
-int Waypoints::NextWaypoint(double x, double y, double theta) const
+int TWaypoints::NextWaypoint(double x, double y, double theta) const
 {
 	int closest_idx = ClosestWaypoint(x,y);
 
@@ -85,7 +85,7 @@ int Waypoints::NextWaypoint(double x, double y, double theta) const
 
 //----------------------------------------------------------------------------------------------
 
-int Waypoints::PreviousWaypoint(int i) const
+int TWaypoints::PreviousWaypoint(int i) const
 {
   return i == 0 ? waypoints_.size() - 1 : i - 1;
 }
@@ -94,7 +94,7 @@ int Waypoints::PreviousWaypoint(int i) const
 //----------------------------------------------------------------------------------------------
 
 // Transform from Cartesian x,y coordinates to Frenet s,d coordinates
-//Vector2d Waypoints::CalcFrenet(const Vector2d& p, double theta) const
+//Vector2d TWaypoints::CalcFrenet(const Vector2d& p, double theta) const
 //{
 //	const int idx_next_wp = NextWaypoint(p(0),p(1), theta);
 //	const int idx_prev_wp = PreviousWaypoint(idx_next_wp);
@@ -136,30 +136,33 @@ int Waypoints::PreviousWaypoint(int i) const
 //  return Vector2d(frenet_s, frenet_d);
 //}
 
+
 //----------------------------------------------------------------------------------------------
 
-double Waypoints::Error(const Eigen::Vector2d& p, double s) const
+double TWaypoints::Error(const Eigen::Vector2d& p, double s) const
 {
   return pow(p(0) - x_spline_(s), 2) + pow(p(1) - y_spline_(s), 2);
 }
 
+
 //----------------------------------------------------------------------------------------------
 
-double Waypoints::ErrorDeriv(const Eigen::Vector2d& p, double s) const
+double TWaypoints::ErrorDeriv(const Eigen::Vector2d& p, double s) const
 {
   return -2.0 * (p(0) - x_spline_(s)) * x_spline_.deriv(1, s)
          - 2.0 * (p(1) - y_spline_(s)) * y_spline_.deriv(1,s);
 }
 
+
 //----------------------------------------------------------------------------------------------
 
-Eigen::Vector2d Waypoints::CalcFrenet(const Eigen::Vector2d& p, double aStartS) const
+Eigen::Vector2d TWaypoints::CalcFrenet(const Eigen::Vector2d& p, double aStartS) const
 {
   // Perform gradient descent in order to find the point on the spline that is closest to p:
   const double eps = 1.0e-6;
   double s = aStartS;
-  const double kGamma = 0.01;
-  const double kPrecision = 1e-6;
+  const double kGamma = 0.001;
+  const double kPrecision = 1e-12;
   double PreviousStepSize = s;
 
   while (PreviousStepSize > kPrecision)
@@ -170,20 +173,21 @@ Eigen::Vector2d Waypoints::CalcFrenet(const Eigen::Vector2d& p, double aStartS) 
   }
 
   const Vector2d p_spline(x_spline_(s), y_spline_(s));
-  std::cout << p << ", " << p_spline << std::endl;
+  //std::cout << p << ", " << p_spline << std::endl;
 
   const Vector2d p_delta = (p - p_spline).array() / GetNormalAt(s).array();
-  std::cout << "p_delta:" << p_delta << std::endl;
-  std::cout << "normal: " << GetNormalAt(s) << std::endl;
+  //std::cout << "p_delta:" << p_delta << std::endl;
+  //std::cout << "normal: " << GetNormalAt(s) << std::endl;
   // p = p_spline + d * n
   // d = (p-p_spline) / n
   const double d = 0.5 * (p_delta(0) + p_delta(1));
   return Vector2d(s, d);
 }
 
+
 //----------------------------------------------------------------------------------------------
 
-Vector2d Waypoints::GetNormalAt(double s) const
+Vector2d TWaypoints::GetNormalAt(double s) const
 {
   return Vector2d(-y_spline_.deriv(1, s), x_spline_.deriv(1, s));
 }
@@ -191,7 +195,7 @@ Vector2d Waypoints::GetNormalAt(double s) const
 
 //----------------------------------------------------------------------------------------------
 // Transform from Frenet s,d coordinates to Cartesian x,y
-Vector2d Waypoints::getXY(double s, double d) const
+Vector2d TWaypoints::getXY(double s, double d) const
 {
 	int idx_prev = -1;
 
@@ -223,7 +227,7 @@ Vector2d Waypoints::getXY(double s, double d) const
 
 //----------------------------------------------------------------------------------------------
 
-Eigen::Vector2d Waypoints::getXY_interpolated(double s, double d) const
+Eigen::Vector2d TWaypoints::getXY_interpolated(double s, double d) const
 {
   while (s > max_s_)
   {
@@ -241,7 +245,7 @@ Eigen::Vector2d Waypoints::getXY_interpolated(double s, double d) const
 
 //----------------------------------------------------------------------------------------------
 
-void Waypoints::fit_splines()
+void TWaypoints::fit_splines()
 {
   std::vector<double> s_vec;
   std::vector<double> x_vec;

@@ -40,7 +40,7 @@ public:
   std::tuple<double,double> MinDistanceToTrajectory(const TTrajectoryPtr apOtherTrajectory) const;
 
   double JerkCost() const;
-  double SafetyDistanceCost(const TTrajectoryPtr apOtherTrajectory) const;
+  std::tuple<double,double> SafetyDistanceCost(const TTrajectoryPtr apOtherTrajectory) const;
 
   void AddCost(double c);
   double Cost() const;
@@ -53,6 +53,7 @@ public:
   static double SEvalAt(const Eigen::VectorXd& c, double t, int deriv);
   static Eigen::VectorXd SEvalStateAt(const Eigen::VectorXd& s_coeffs, double t);
   static Eigen::VectorXd SEvalStateAt(const Eigen::VectorXd& s_coeffs, const Eigen::VectorXd& d_coeffs, double t);
+  static double SSafetyDistanceCost(double aDistance, double aVelocity);
 
 
 private:
