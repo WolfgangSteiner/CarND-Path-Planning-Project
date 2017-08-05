@@ -47,19 +47,20 @@ TTrajectory::TTrajectoryPtr TKeepLaneState::Execute(
         VelocityCost += 1000;
       }
 
+//      double AccelerationCost = std::exp()
+
       ipTrajectory->AddCost(VelocityCost);
       ipTrajectory->AddCost(kJerkCost);
       ipTrajectory->AddCost(kTimeCost);
 
       double SafetyDistanceCost = 0.0;
       double MinDistToLeadingVehicle = 1000;
-      double MinDistToLeadingVehicle2 = 1000;
 
       if (pLeadingVehicleTrajectory)
       {
         double Min_time;
         std::tie(MinDistToLeadingVehicle, Min_time) = ipTrajectory->MinDistanceToTrajectory(pLeadingVehicleTrajectory);
-        std::tie(SafetyDistanceCost, MinDistToLeadingVehicle2) = ipTrajectory->SafetyDistanceCost(pLeadingVehicleTrajectory);
+        SafetyDistanceCost = ipTrajectory->SafetyDistanceCost(pLeadingVehicleTrajectory);
         SafetyDistanceCost *= mSafetyDistanceFactor;
         ipTrajectory->AddCost(SafetyDistanceCost);
       }
@@ -72,7 +73,6 @@ TTrajectory::TTrajectoryPtr TKeepLaneState::Execute(
            << " Jc: "      << kJerkCost
            << " MinDist: " << MinDistToLeadingVehicle
            << " Dc: "      << SafetyDistanceCost
-           << " MinDist2: " << MinDistToLeadingVehicle2
            << " v_min: "   << kMinVelocity
            << " v_max "    << kMaxVelocity
            << " cost: "    << ipTrajectory->Cost()

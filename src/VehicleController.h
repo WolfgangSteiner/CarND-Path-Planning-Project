@@ -40,7 +40,8 @@ private:
 
   double mLastS{0.0};
   double mCurrentTime{0.0};
-  double mTimeHorizon{1.0};
+  double mPredictionHorizon{1.0};
+  double mDisplayHorizon{2.0};
   bool mIsInitialized{false};
 };
 

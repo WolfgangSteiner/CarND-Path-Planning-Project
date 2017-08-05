@@ -36,18 +36,20 @@ void TVehicleController::UpdateTrajectory(
     std::vector<double>& aNextPathY,
     const std::vector<std::vector<double>>& aSensorFusionData)
 {
-  const int n = int(mTimeHorizon * 1000) / 20;
   // std::cout << "NumCars: "  << aSensorFusionData.size() << std::endl;
 
+  const int kPredictionPathSize = int(mPredictionHorizon * 1000) / 20;
+  const int kDisplayPathSize = int(mDisplayHorizon * 1000) / 20;
 
-  const int kPathSize = aPreviousPathX.size();
-  for (int i = 0; i < kPathSize; ++i)
+  const int kPreviousPathSize = aPreviousPathX.size();
+  const int kPreviousPredictionPathSize = kPreviousPathSize - (kDisplayPathSize - kPredictionPathSize);
+  for (int i = 0; i < kPreviousPredictionPathSize; ++i)
   {
     aNextPathX.push_back(aPreviousPathX[i]);
     aNextPathY.push_back(aPreviousPathY[i]);
   }
 
-  const double kDelayT = kPathSize * 0.02;
+  const double kDelayT = kPreviousPredictionPathSize * 0.02;
   TSensorFusion SensorFusion(aSensorFusionData, mWaypoints, kDelayT);
 
   if (!mIsInitialized)
@@ -61,15 +63,23 @@ void TVehicleController::UpdateTrajectory(
   }
 
   mpCurrentTrajectory = mStateMachine.Execute(mCurrentState, mCurrentTime, SensorFusion);
+  double iCurrentTime = mCurrentTime;
+  Eigen::VectorXd iCurrentState = mCurrentState;
 
-  for (int i = kPathSize; i < n; ++i)
+  for (int i = kPreviousPredictionPathSize; i < kDisplayPathSize; ++i)
   {
-    mCurrentState = mpCurrentTrajectory->EvalAt(mCurrentTime);
-    const auto p = mWaypoints.getXY_interpolated(mCurrentState(0), mCurrentState(3));
-    // std::cout << p(0) << ", " << p(1) << std::endl;
+    if (i == kPredictionPathSize)
+    {
+      mCurrentTime = iCurrentTime;
+      mCurrentState = iCurrentState;
+    }
+
+    const auto p = mWaypoints.getXY_interpolated(iCurrentState(0), iCurrentState(3));
+    iCurrentTime += 0.02;
+    iCurrentState = mpCurrentTrajectory->EvalAt(iCurrentTime);
+
     aNextPathX.push_back(p(0));
     aNextPathY.push_back(p(1));
-    mCurrentTime += 0.02;
   }
 }
 

@@ -40,7 +40,7 @@ public:
   std::tuple<double,double> MinDistanceToTrajectory(const TTrajectoryPtr apOtherTrajectory) const;
 
   double JerkCost() const;
-  std::tuple<double,double> SafetyDistanceCost(const TTrajectoryPtr apOtherTrajectory) const;
+  double SafetyDistanceCost(const TTrajectoryPtr apOtherTrajectory) const;
 
   void AddCost(double c);
   double Cost() const;

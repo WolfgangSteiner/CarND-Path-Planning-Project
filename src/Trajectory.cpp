@@ -361,13 +361,22 @@ double TTrajectory::JerkCost() const
 
 //----------------------------------------------------------------------------------------------
 
-std::tuple<double,double> TTrajectory::SafetyDistanceCost(const TTrajectoryPtr apOtherTrajectory) const
+double TTrajectory::SafetyDistanceCost(const TTrajectoryPtr apOtherTrajectory) const
 {
-  double kMinDist, kMinDist_t;
-  std::tie(kMinDist, kMinDist_t) = MinDistanceToTrajectory(apOtherTrajectory);
-  const double kMinDistSpeed = SEvalAt(mSCoeffs, kMinDist_t, 1);
+  const double kHorizon = 10.0;
+  double Cost = 0.0;
+  const double dt = 0.1;
 
-  return std::make_pair(SSafetyDistanceCost(kMinDist, kMinDistSpeed), kMinDist);
+  for (double t = mStartTime; t < mStartTime + kHorizon; t += dt)
+  {
+    const Eigen::VectorXd s1 = EvalAt(t);
+    const Eigen::VectorXd s2 = apOtherTrajectory->EvalAt(t);
+    const double kDist = NUtils::distance(s1(0), s1(3), s2(0), s2(3));
+    const double kSpeed = SEvalAt(mSCoeffs, t - mStartTime, 1);
+    Cost += SSafetyDistanceCost(kDist, kSpeed);
+  }
+
+  return Cost;
 }
 
 
@@ -377,7 +386,7 @@ double TTrajectory::MinVelocity() const
 {
   double MinVelocity = 1e9;
 
-  for (double t = 0; t <= mDuration; t+=mTimeStep)
+  for (double t = 0; t < mDuration; t+=mTimeStep)
   {
     MinVelocity = std::min(MinVelocity, SEvalAt(mSCoeffs, t, 1));
   }
@@ -392,7 +401,7 @@ double TTrajectory::MaxVelocity() const
 {
   double MaxVelocity = -1e9;
 
-  for (double t = 0; t <= mDuration; t+=mTimeStep)
+  for (double t = 0; t < mDuration; t+=mTimeStep)
   {
     MaxVelocity = std::max(MaxVelocity, SEvalAt(mSCoeffs, t, 1));
   }
