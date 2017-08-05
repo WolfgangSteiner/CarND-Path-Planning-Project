@@ -18,13 +18,6 @@ TVehicleController::TVehicleController()
   mCurrentState = VectorXd::Zero(6);
 }
 
-//----------------------------------------------------------------------------------------------
-//
-//void TVehicleController::QueueTrajectory(double aEndVelocity, double aEndD, double aDeltaS, double aDeltaT)
-//{
-//  mTrajectoryQueue.push_back(TTrajectoryPtr(new TTrajectory(aEndVelocity, aEndD, aDeltaS, aDeltaT)));
-//}
-
 
 //----------------------------------------------------------------------------------------------
 
@@ -46,7 +39,7 @@ void TVehicleController::UpdateTrajectory(
   const int kPredictionPathSize = int(mPredictionHorizon * 1000) / 20;
   const int kDisplayPathSize = int(mDisplayHorizon * 1000) / 20;
   const int kPreviousPathSize = aPreviousPathX.size();
-  const int kPreviousPredictionPathSize = kPreviousPathSize - (kDisplayPathSize - kPredictionPathSize);
+  const int kPreviousPredictionPathSize = std::max(0, kPreviousPathSize - (kDisplayPathSize - kPredictionPathSize));
 
   for (int i = 0; i < kPreviousPredictionPathSize; ++i)
   {
@@ -54,7 +47,7 @@ void TVehicleController::UpdateTrajectory(
     aNextPathY.push_back(aPreviousPathY[i]);
   }
 
-  const double kDelayT = kPreviousPredictionPathSize * 0.02;
+  const double kDelayT = std::max(0.0, kPreviousPredictionPathSize * 0.02);
   mSensorFusion.Update(aSensorFusionData);
   mSensorFusion.Predict(kDelayT);
 
