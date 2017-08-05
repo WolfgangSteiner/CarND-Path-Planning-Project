@@ -18,7 +18,9 @@ TSensorFusion::TSensorFusion()
 
 //==============================================================================================
 
-void TSensorFusion::Update(const std::vector<std::vector<double>>& aSensorFusionData)
+void TSensorFusion::Update(
+  const std::vector<std::vector<double>>& aSensorFusionData,
+  double aCurrentS)
 {
   mUpdateMap.clear();
 
@@ -38,16 +40,29 @@ void TSensorFusion::Update(const std::vector<std::vector<double>>& aSensorFusion
     const double s0 = iData[5];
     const Eigen::Vector2d f = mWaypoints.CalcFrenet(Vector2d(x,y), s0);
 
+    double s = f(0);
+    const double kMaxS = mWaypoints.MaxS();
+
+    while (aCurrentS - s > kMaxS / 2.0)
+    {
+      s += kMaxS;
+    }
+
+    while (aCurrentS - s < -kMaxS / 2.0)
+    {
+      s -= kMaxS;
+    }
+
     auto FindIter = mOtherCars.find(id);
 
     if (FindIter == mOtherCars.end())
     {
-      mOtherCars[id] = TOtherCar(f(0), f(1), v);
+      mOtherCars[id] = TOtherCar(s, f(1), v);
       mUpdateMap[id] = true;
     }
     else
     {
-      mOtherCars[id].Update(f(0), f(1), v);
+      mOtherCars[id].Update(s, f(1), v);
       mUpdateMap[id] = true;
     }
   }

@@ -48,7 +48,7 @@ void TVehicleController::UpdateTrajectory(
   }
 
   const double kDelayT = std::max(0.0, kPreviousPredictionPathSize * 0.02);
-  mSensorFusion.Update(aSensorFusionData);
+  mSensorFusion.Update(aSensorFusionData, mCurrentState(0));
   mSensorFusion.Predict(kDelayT);
 
   mpCurrentTrajectory = mStateMachine.Execute(mCurrentState, mCurrentTime, mSensorFusion);

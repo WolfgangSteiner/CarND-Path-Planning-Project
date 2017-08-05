@@ -34,6 +34,14 @@ TWaypoints::TWaypoints()
 
 //----------------------------------------------------------------------------------------------
 
+double TWaypoints::MaxS() const
+{
+  return max_s_;
+}
+
+
+//----------------------------------------------------------------------------------------------
+
 const Waypoint& TWaypoints::at(int idx) const
 {
   return waypoints_[idx];
@@ -251,6 +259,13 @@ void TWaypoints::fit_splines()
   std::vector<double> x_vec;
   std::vector<double> y_vec;
 
+  const Waypoint& first_wp = waypoints_.front();
+  const Waypoint& last_wp = waypoints_.back();
+
+  s_vec.push_back(last_wp.s_ - max_s_);
+  x_vec.push_back(last_wp.x_);
+  y_vec.push_back(last_wp.y_);
+
   for (const Waypoint& iwp: waypoints_)
   {
     s_vec.push_back(iwp.s_);
@@ -258,6 +273,9 @@ void TWaypoints::fit_splines()
     y_vec.push_back(iwp.y_);
   }
 
+  s_vec.push_back(first_wp.s_ + max_s_);
+  x_vec.push_back(first_wp.x_);
+  y_vec.push_back(first_wp.y_);
 
   std::cout << "Fitting splines...";
   x_spline_.set_points(s_vec, x_vec);

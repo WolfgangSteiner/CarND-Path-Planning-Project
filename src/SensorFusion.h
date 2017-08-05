@@ -17,7 +17,7 @@ class TSensorFusion
 public:
   TSensorFusion();
 
-  void Update(const std::vector<std::vector<double>>& aSensorFusionData);
+  void Update(const std::vector<std::vector<double>>& aSensorFusionData, double aCurrentS);
   void Predict(double aDeltaT);
 
   std::list<TOtherCar> OtherLeadingCarsInLane(const Eigen::VectorXd& aState) const;

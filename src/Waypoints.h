@@ -26,6 +26,8 @@ public:
 
   const Waypoint& at(int idx) const;
 
+  double MaxS() const;
+
 public:
   std::vector<Waypoint> waypoints_;
 
