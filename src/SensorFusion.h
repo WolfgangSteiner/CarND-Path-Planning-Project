@@ -7,7 +7,7 @@
 #include "OtherCar.h"
 #include "Waypoints.h"
 //==============================================================================================
-#include <vector>
+#include <unordered_map>
 #include <list>
 #include "Eigen-3.3/Eigen/Core"
 //==============================================================================================
@@ -15,15 +15,17 @@
 class TSensorFusion
 {
 public:
-  TSensorFusion(
-    const std::vector<std::vector<double>>& aSensorFusionData,
-    const TWaypoints& aWaypoints,
-    double aDelayT);
+  TSensorFusion();
+
+  void Update(const std::vector<std::vector<double>>& aSensorFusionData);
+  void Predict(double aDeltaT);
 
   std::list<TOtherCar> OtherLeadingCarsInLane(const Eigen::VectorXd& aState) const;
 
 private:
-  std::vector<TOtherCar> mOtherCars;
+  std::unordered_map<int,TOtherCar> mOtherCars;
+  std::unordered_map<int,bool> mUpdateMap;
+  TWaypoints mWaypoints;
 };
 
 

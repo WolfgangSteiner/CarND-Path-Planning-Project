@@ -30,7 +30,6 @@ public:
   static TTrajectoryPtr SVelocityKeepingTrajectory(
     const Eigen::VectorXd& aStartState, double aTargetVelocity, double aCurrentTime, double aDuration);
 
-
   std::vector<Eigen::VectorXd> GetTrajectory() const;
   Eigen::VectorXd EvalAt(double t) const;
 
@@ -39,8 +38,13 @@ public:
 
   std::tuple<double,double> MinDistanceToTrajectory(const TTrajectoryPtr apOtherTrajectory) const;
 
+  std::tuple<double,double> MinDistanceToTrajectory(
+    const Eigen::MatrixXd& aTrajectory,
+    double aDeltaT,
+    double aDuration) const;
+
   double JerkCost() const;
-  double SafetyDistanceCost(const TTrajectoryPtr apOtherTrajectory) const;
+  double SafetyDistanceCost(const Eigen::MatrixXd& aTrajectory, double aDeltaT, double aDuration) const;
 
   void AddCost(double c);
   double Cost() const;

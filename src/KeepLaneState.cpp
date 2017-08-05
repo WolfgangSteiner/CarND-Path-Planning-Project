@@ -17,17 +17,18 @@ TTrajectory::TTrajectoryPtr TKeepLaneState::Execute(
   double aCurrentTime,
   const TSensorFusion& aSensorFusion)
 {
-  const auto LeadingVehicles = aSensorFusion.OtherLeadingCarsInLane(aCurrentState);
+  auto LeadingVehicles = aSensorFusion.OtherLeadingCarsInLane(aCurrentState);
   const double kCurrentS = aCurrentState(0);
   const double kCurrentSpeed = aCurrentState(1);
   const double kCurrentSafetyDistance = kCurrentSpeed * 3.6 / 2;
 
-  TTrajectory::TTrajectoryPtr pLeadingVehicleTrajectory;
+  TOtherCar* pLeadingVehicle = nullptr;
+  Eigen::MatrixXd LeadingVehicleTrajectory;
 
   if (LeadingVehicles.size())
   {
-    const TOtherCar& kLeadingVehicle = LeadingVehicles.front();
-    pLeadingVehicleTrajectory = kLeadingVehicle.CurrentTrajectory(aCurrentTime, mHorizonTime);
+    pLeadingVehicle = &LeadingVehicles.front();
+    LeadingVehicleTrajectory = pLeadingVehicle->CurrentTrajectory(0.1, mHorizonTime);
   }
 
   TTrajectoryCollection TrajectoryCollection;
@@ -56,11 +57,14 @@ TTrajectory::TTrajectoryPtr TKeepLaneState::Execute(
       double SafetyDistanceCost = 0.0;
       double MinDistToLeadingVehicle = 1000;
 
-      if (pLeadingVehicleTrajectory)
+      if (pLeadingVehicle)
       {
         double Min_time;
-        std::tie(MinDistToLeadingVehicle, Min_time) = ipTrajectory->MinDistanceToTrajectory(pLeadingVehicleTrajectory);
-        SafetyDistanceCost = ipTrajectory->SafetyDistanceCost(pLeadingVehicleTrajectory);
+        const double kDuration = mHorizonTime;
+        const double kDeltaT = 0.1;
+        std::tie(MinDistToLeadingVehicle, Min_time) =
+          ipTrajectory->MinDistanceToTrajectory(LeadingVehicleTrajectory, kDeltaT, kDuration);
+        SafetyDistanceCost = ipTrajectory->SafetyDistanceCost(LeadingVehicleTrajectory, kDeltaT, kDuration);
         SafetyDistanceCost *= mSafetyDistanceFactor;
         ipTrajectory->AddCost(SafetyDistanceCost);
       }

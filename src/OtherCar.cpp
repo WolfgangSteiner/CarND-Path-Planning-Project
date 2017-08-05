@@ -6,16 +6,16 @@
 #include "Utils.h"
 //==============================================================================================
 
-TOtherCar::TOtherCar(const int aId, double aX, double aY, double aVx, double aVy, double aS, double aD, double aVelocity)
-: mId{aId}
-, mX{aX}
-, mY{aY}
-, mVx{aVx}
-, mVy{aVy}
-, mS{aS}
-, mD{aD}
-, mVelocity{aVelocity}
+TOtherCar::TOtherCar()
 {}
+
+
+//----------------------------------------------------------------------------------------------
+
+TOtherCar::TOtherCar(double aS, double aD, double aVs)
+: mKalmanFilter(aS, aD, aVs)
+{}
+
 
 //----------------------------------------------------------------------------------------------
 
@@ -24,11 +24,28 @@ bool TOtherCar::IsInLane(int aLaneNumber) const
   return NUtils::SLaneNumberForD(D()) == aLaneNumber;
 }
 
+
+//----------------------------------------------------------------------------------------------
+
+void TOtherCar::Update(double aS, double aD, double aVs)
+{
+  mKalmanFilter.Update(aS, aD, aVs);
+}
+
+
+//----------------------------------------------------------------------------------------------
+
+void TOtherCar::Predict(double aDeltaT)
+{
+  mKalmanFilter.Predict(aDeltaT);
+}
+
+
 //----------------------------------------------------------------------------------------------
 
 double TOtherCar::S() const
 {
-  return mS;
+  return mKalmanFilter.S();
 }
 
 
@@ -36,22 +53,7 @@ double TOtherCar::S() const
 
 double TOtherCar::D() const
 {
-  return mD;
-}
-
-
-//----------------------------------------------------------------------------------------------
-
-double TOtherCar::X() const
-{
-  return mX;
-}
-
-//----------------------------------------------------------------------------------------------
-
-double TOtherCar::Y() const
-{
-  return mY;
+  return mKalmanFilter.D();
 }
 
 
@@ -59,15 +61,27 @@ double TOtherCar::Y() const
 
 double TOtherCar::Velocity() const
 {
-  return mVelocity;
+  return mKalmanFilter.Vs();
 }
 
 
 //----------------------------------------------------------------------------------------------
 
-TTrajectory::TTrajectoryPtr TOtherCar::CurrentTrajectory(double aCurrentTime, double aDuration) const
+Eigen::MatrixXd TOtherCar::CurrentTrajectory(double aDeltaT, double aDuration)
 {
-  return TTrajectory::SConstantVelocityTrajectory(S(), D(), Velocity(), aCurrentTime, aDuration);
+  mKalmanFilter.PushState();
+  const int n = int(aDuration / aDeltaT);
+  Eigen::MatrixXd Result(n, 4);
+
+  for (int i = 0; i < n; ++i)
+  {
+    Result.row(i) << mKalmanFilter.X().transpose();
+    mKalmanFilter.Predict(aDeltaT);
+  }
+
+  mKalmanFilter.PopState();
+
+  return Result;
 }
 
 

@@ -4,6 +4,7 @@
 //==============================================================================================
 #include "Waypoints.h"
 #include "Trajectory.h"
+#include "SensorFusion.h"
 #include "StateMachine.h"
 //==============================================================================================
 #include "Eigen-3.3/Eigen/Core"
@@ -37,8 +38,8 @@ private:
   TTrajectory::TTrajectoryPtr mpCurrentTrajectory;
   TStateMachine mStateMachine;
   TWaypoints mWaypoints;
+  TSensorFusion mSensorFusion;
 
-  double mLastS{0.0};
   double mCurrentTime{0.0};
   double mPredictionHorizon{1.0};
   double mDisplayHorizon{2.0};

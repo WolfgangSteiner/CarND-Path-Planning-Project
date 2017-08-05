@@ -1,38 +1,51 @@
 //==============================================================================================
 // Created by Wolfgang Steiner
 //==============================================================================================
-#ifndef OTHERCAR_H
-#define OTHERCAR_H
+#ifndef KALMANFILTER_H
+#define KALMANFILTER_H
 //==============================================================================================
-#include "KalmanFilter.h"
-#include "Trajectory.h"
-//==============================================================================================
-#include <vector>
 #include "Eigen-3.3/Eigen/Core"
+#include <deque>
 //==============================================================================================
 
-class TOtherCar
+class TKalmanFilter
 {
 public:
-  TOtherCar();
-  TOtherCar(double aS, double aD, double aVs);
+  TKalmanFilter();
+  TKalmanFilter(double s, double d, double vs);
 
 public:
-  bool IsInLane(int aLaneNumber) const;
+  Eigen::VectorXd Predict(double dt);
+  void Update(double s, double d, double vs);
   double S() const;
   double D() const;
+  double Vs() const;
+  const Eigen::VectorXd& X() const;
 
-  double Velocity() const;
-  Eigen::MatrixXd CurrentTrajectory(double aDeltaT, double aDuration);
 
-  void Update(double aS, double aD, double aVs);
-  void Predict(double aDeltaT);
+public:
+  void PushState();
+  void PopState();
 
 private:
-  TKalmanFilter mKalmanFilter;
+  void UpdateQ(double dt);
+  void UpdateF(double dt);
+
+
+private:
+  Eigen::VectorXd mX;
+  Eigen::MatrixXd mP;
+
+  std::deque<Eigen::VectorXd> mStackX;
+  std::deque<Eigen::MatrixXd> mStackP;
+
+  Eigen::MatrixXd mQ;
+  Eigen::MatrixXd mF;
+  Eigen::MatrixXd mH;
+  Eigen::MatrixXd mR;
 };
 
 
 //==============================================================================================
-#endif // OTHERCAR_H
+#endif // KALMANFILTER_H
 //==============================================================================================

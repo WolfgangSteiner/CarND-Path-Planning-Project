@@ -321,6 +321,39 @@ std::tuple<double,double> TTrajectory::MinDistanceToTrajectory(const TTrajectory
   return std::make_tuple(MinDist, MinDist_t);
 }
 
+
+//----------------------------------------------------------------------------------------------
+
+std::tuple<double,double> TTrajectory::MinDistanceToTrajectory(
+  const Eigen::MatrixXd& aTrajectory,
+  double aDeltaT,
+  double aDuration) const
+{
+  double t = mStartTime;
+  double MinDist = 1.0e9;
+  double MinDist_t = 0.0;
+
+  assert(aDuration <= 10.0);
+
+  const int n = int(aDuration / aDeltaT);
+
+  for (int i = 0; i < n; ++i)
+  {
+    Eigen::VectorXd s1 = EvalAt(t);
+    const double Dist = NUtils::distance(s1(0), s1(3), aTrajectory(i,0), aTrajectory(i,1));
+    if (Dist < MinDist)
+    {
+      MinDist = Dist;
+      MinDist_t = t;
+    }
+
+    t += aDeltaT;
+  }
+
+  return std::make_tuple(MinDist, MinDist_t);
+}
+
+
 //----------------------------------------------------------------------------------------------
 
 void TTrajectory::AddCost(double c)
@@ -361,19 +394,23 @@ double TTrajectory::JerkCost() const
 
 //----------------------------------------------------------------------------------------------
 
-double TTrajectory::SafetyDistanceCost(const TTrajectoryPtr apOtherTrajectory) const
+double TTrajectory::SafetyDistanceCost(
+  const MatrixXd& s2,
+  double aDeltaT,
+  double aDuration) const
 {
-  const double kHorizon = 10.0;
   double Cost = 0.0;
-  const double dt = 0.1;
 
-  for (double t = mStartTime; t < mStartTime + kHorizon; t += dt)
+  double t = mStartTime;
+  const int n = int(aDuration / aDeltaT);
+
+  for (int i = 0; i < n; ++i)
   {
     const Eigen::VectorXd s1 = EvalAt(t);
-    const Eigen::VectorXd s2 = apOtherTrajectory->EvalAt(t);
-    const double kDist = NUtils::distance(s1(0), s1(3), s2(0), s2(3));
+    const double kDist = NUtils::distance(s1(0), s1(3), s2(i,0), s2(i,3));
     const double kSpeed = SEvalAt(mSCoeffs, t - mStartTime, 1);
     Cost += SSafetyDistanceCost(kDist, kSpeed);
+    t += aDeltaT;
   }
 
   return Cost;

@@ -36,13 +36,18 @@ void TVehicleController::UpdateTrajectory(
     std::vector<double>& aNextPathY,
     const std::vector<std::vector<double>>& aSensorFusionData)
 {
-  // std::cout << "NumCars: "  << aSensorFusionData.size() << std::endl;
+  if (!mIsInitialized)
+  {
+    const auto f = mWaypoints.CalcFrenet(Eigen::Vector2d(aCarState.x, aCarState.y), aCarState.s);
+    mCurrentState << f(0), 0.0, 0.0, f(1), 0.0, 0.0;
+    mIsInitialized = true;
+  }
 
   const int kPredictionPathSize = int(mPredictionHorizon * 1000) / 20;
   const int kDisplayPathSize = int(mDisplayHorizon * 1000) / 20;
-
   const int kPreviousPathSize = aPreviousPathX.size();
   const int kPreviousPredictionPathSize = kPreviousPathSize - (kDisplayPathSize - kPredictionPathSize);
+
   for (int i = 0; i < kPreviousPredictionPathSize; ++i)
   {
     aNextPathX.push_back(aPreviousPathX[i]);
@@ -50,19 +55,10 @@ void TVehicleController::UpdateTrajectory(
   }
 
   const double kDelayT = kPreviousPredictionPathSize * 0.02;
-  TSensorFusion SensorFusion(aSensorFusionData, mWaypoints, kDelayT);
+  mSensorFusion.Update(aSensorFusionData);
+  mSensorFusion.Predict(kDelayT);
 
-  if (!mIsInitialized)
-  {
-    mCurrentTime = 0.0;
-    const Eigen::Vector2d kInitialFrenet =
-      mWaypoints.CalcFrenet(Eigen::Vector2d(aCarState.x, aCarState.y), aCarState.s);
-
-    mCurrentState << kInitialFrenet(0), 0.0, 0.0, kInitialFrenet(1), 0.0, 0.0;
-    mIsInitialized = true;
-  }
-
-  mpCurrentTrajectory = mStateMachine.Execute(mCurrentState, mCurrentTime, SensorFusion);
+  mpCurrentTrajectory = mStateMachine.Execute(mCurrentState, mCurrentTime, mSensorFusion);
   double iCurrentTime = mCurrentTime;
   Eigen::VectorXd iCurrentState = mCurrentState;
 
