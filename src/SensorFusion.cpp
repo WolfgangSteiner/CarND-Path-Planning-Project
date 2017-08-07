@@ -105,17 +105,33 @@ std::list<TOtherCar> TSensorFusion::OtherLeadingCarsInLane(const Eigen::VectorXd
     {
       Result.push_back(iOtherCar);
     }
-    else
-    {
-      std::cout << "Ignoring other car at: (" << iOtherCar.S() << ", " << iOtherCar.D() << ")\n";
-    }
   }
 
   Result.sort([](const TOtherCar& CarA, const TOtherCar& CarB) { return CarA.S() < CarB.S(); });
 
-  for (const auto& iCar : Result)
+  return Result;
+}
+
+//----------------------------------------------------------------------------------------------
+
+std::list<TOtherCar> TSensorFusion::OtherNearbyCarsInLane(
+  const Eigen::VectorXd& aState,
+  int aLaneNumber,
+  double aDeltaS) const
+{
+  const double kCurrentS = aState(0);
+
+  std::list<TOtherCar> Result;
+
+  for (const auto& iPair  : mOtherCars)
   {
-    std::cout << "Other car in front at: " << iCar.S() << std::endl;
+    const auto& iOtherCar = iPair.second;
+    if (iOtherCar.IsInLane(aLaneNumber)
+        && iOtherCar.S() > kCurrentS - aDeltaS
+        && iOtherCar.S() < kCurrentS + aDeltaS)
+    {
+      Result.push_back(iOtherCar);
+    }
   }
 
   return Result;

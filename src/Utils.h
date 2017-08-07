@@ -13,6 +13,7 @@ namespace NUtils
   double distance(const Waypoint& wp1, const Waypoint& wp2);
   int SLaneNumberForD(double d);
   double SDForLaneNumber(int aLaneNumber);
+  double SLaneWidth();
 }
 
 //==============================================================================================

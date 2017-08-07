@@ -154,6 +154,8 @@ VectorXd TTrajectory::SEvalStateAt(const Eigen::VectorXd& s_coeffs, const Eigen:
   return state;
 }
 
+
+
 //==============================================================================================
 
 TTrajectory::TTrajectory()
@@ -296,6 +298,14 @@ bool TTrajectory::IsFinished(double t) const
 
 //----------------------------------------------------------------------------------------------
 
+double TTrajectory::Duration() const
+{
+  return mDuration;
+}
+
+
+//----------------------------------------------------------------------------------------------
+
 std::tuple<double,double> TTrajectory::MinDistanceToTrajectory(const TTrajectoryPtr apOtherTrajectory) const
 {
   double t = mStartTime;
@@ -356,29 +366,14 @@ std::tuple<double,double> TTrajectory::MinDistanceToTrajectory(
 
 //----------------------------------------------------------------------------------------------
 
-void TTrajectory::AddCost(double c)
-{
-  mCost += c;
-  assert(mCost == mCost);
-}
-
-
-//----------------------------------------------------------------------------------------------
-
-double TTrajectory::Cost() const
-{
-  return mCost;
-}
-
-
-//----------------------------------------------------------------------------------------------
-
-double TTrajectory::JerkCost() const
+double TTrajectory::JerkCost(double aHorizonTime) const
 {
   double Cs = 0.0;
   double Cd = 0.0;
 
-  for (double t = 0; t < mDuration; t+=mTimeStep)
+  const double n = aHorizonTime / mCostDeltaT;
+
+  for (double t = 0; t < aHorizonTime; t+=mCostDeltaT)
   {
     const double Js = SEvalAt(mSCoeffs, t, 3);
     const double Jd = SEvalAt(mDCoeffs, t, 3);
@@ -388,7 +383,29 @@ double TTrajectory::JerkCost() const
     Cd += Jd*Jd;
   }
 
-  return Cs + 2.0 * Cd;
+  return (Cs + 2.0 * Cd) / n;
+}
+
+
+//----------------------------------------------------------------------------------------------
+
+double TTrajectory::VelocityCost(double aTargetVelocity, double aHorizonTime) const
+{
+  double Cost = 0.0;
+
+  double t = 0.0;
+  const int n = int(aHorizonTime / mCostDeltaT);
+
+  for (int i = 0; i < n; ++i)
+  {
+    const double kVelocity = SEvalAt(mSCoeffs, t, 1);
+    Cost += pow(aTargetVelocity - kVelocity, 2);
+    t += mCostDeltaT;
+  }
+
+  //assert(Cost / n <= pow(aTargetVelocity, 2));
+
+  return Cost / n;
 }
 
 
@@ -396,13 +413,12 @@ double TTrajectory::JerkCost() const
 
 double TTrajectory::SafetyDistanceCost(
   const MatrixXd& s2,
-  double aDeltaT,
   double aDuration) const
 {
   double Cost = 0.0;
 
   double t = mStartTime;
-  const int n = int(aDuration / aDeltaT);
+  const int n = int(aDuration / mCostDeltaT);
 
   for (int i = 0; i < n; ++i)
   {
@@ -410,10 +426,10 @@ double TTrajectory::SafetyDistanceCost(
     const double kDist = NUtils::distance(s1(0), s1(3), s2(i,0), s2(i,3));
     const double kSpeed = SEvalAt(mSCoeffs, t - mStartTime, 1);
     Cost += SSafetyDistanceCost(kDist, kSpeed);
-    t += aDeltaT;
+    t += mCostDeltaT;
   }
 
-  return Cost;
+  return Cost / n;
 }
 
 
@@ -444,6 +460,22 @@ double TTrajectory::MaxVelocity() const
   }
 
   return MaxVelocity;
+}
+
+
+//----------------------------------------------------------------------------------------------
+
+void TTrajectory::PrintCost() const
+{
+  std::cout
+    << " DC: "     << SafetyDistanceCost()
+    << " VC: "     << VelocityCost()
+    << " JC: "     << JerkCost()
+    << " TC: "     << TimeCost()
+    << " C: "      << Cost()
+    << " v_min: "  << MinVelocity()
+    << " v_max "   << MaxVelocity()
+    << std::endl;
 }
 
 

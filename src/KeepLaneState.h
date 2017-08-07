@@ -23,13 +23,6 @@ public:
     const Eigen::VectorXd& aCurrentState,
     double aCurrentTime,
     const TSensorFusion& aSensorFusion) override;
-
-private:
-  double mMaxVelocity{22};
-  double mVelocityCostFactor{1.0};
-  double mJerkCostFactor{0.01};
-  double mTimeCostFactor{100};
-  double mSafetyDistanceFactor{1000};
 };
 
 

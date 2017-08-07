@@ -18,17 +18,11 @@ TTrajectory::TTrajectoryPtr TKeepLaneState::Execute(
   const TSensorFusion& aSensorFusion)
 {
   auto LeadingVehicles = aSensorFusion.OtherLeadingCarsInLane(aCurrentState);
-  const double kCurrentS = aCurrentState(0);
-  const double kCurrentSpeed = aCurrentState(1);
-  const double kCurrentSafetyDistance = kCurrentSpeed * 3.6 / 2;
-
-  TOtherCar* pLeadingVehicle = nullptr;
-  Eigen::MatrixXd LeadingVehicleTrajectory;
+  std::vector<Eigen::MatrixXd> OtherTrajectories;
 
   if (LeadingVehicles.size())
   {
-    pLeadingVehicle = &LeadingVehicles.front();
-    LeadingVehicleTrajectory = pLeadingVehicle->CurrentTrajectory(0.1, mHorizonTime);
+    OtherTrajectories.push_back(LeadingVehicles.front().CurrentTrajectory(0.1, mHorizonTime));
   }
 
   TTrajectoryCollection TrajectoryCollection;
@@ -37,56 +31,21 @@ TTrajectory::TTrajectoryPtr TKeepLaneState::Execute(
     for (double T = 1; T < 10.0; T += 1.0)
     {
       TTrajectory::TTrajectoryPtr ipTrajectory = TTrajectory::SVelocityKeepingTrajectory(aCurrentState, v, aCurrentTime, T);
-      const double kJerkCost = mJerkCostFactor * ipTrajectory->JerkCost();
-      const double kTimeCost = mTimeCostFactor * T;
-      const double kMinVelocity = ipTrajectory->MinVelocity();
-      const double kMaxVelocity = ipTrajectory->MaxVelocity();
-      double VelocityCost = mVelocityCostFactor * pow(mMaxVelocity - v, 2);
-
-      if (kMinVelocity < 0 || kMaxVelocity > mMaxVelocity)
-      {
-        VelocityCost += 1000;
-      }
-
-//      double AccelerationCost = std::exp()
-
-      ipTrajectory->AddCost(VelocityCost);
-      ipTrajectory->AddCost(kJerkCost);
-      ipTrajectory->AddCost(kTimeCost);
-
-      double SafetyDistanceCost = 0.0;
-      double MinDistToLeadingVehicle = 1000;
-
-      if (pLeadingVehicle)
-      {
-        double Min_time;
-        const double kDuration = mHorizonTime;
-        const double kDeltaT = 0.1;
-        std::tie(MinDistToLeadingVehicle, Min_time) =
-          ipTrajectory->MinDistanceToTrajectory(LeadingVehicleTrajectory, kDeltaT, kDuration);
-        SafetyDistanceCost = ipTrajectory->SafetyDistanceCost(LeadingVehicleTrajectory, kDeltaT, kDuration);
-        SafetyDistanceCost *= mSafetyDistanceFactor;
-        ipTrajectory->AddCost(SafetyDistanceCost);
-      }
-
-      std::cout
-           << "s: "        << aCurrentState(0)
-           << " v: "       << v
-           << " T: "       << T
-           << " Vc: "      << VelocityCost
-           << " Jc: "      << kJerkCost
-           << " MinDist: " << MinDistToLeadingVehicle
-           << " Dc: "      << SafetyDistanceCost
-           << " v_min: "   << kMinVelocity
-           << " v_max "    << kMaxVelocity
-           << " cost: "    << ipTrajectory->Cost()
-           << std::endl;
-
+      UpdateCostForTrajectory(ipTrajectory, OtherTrajectories);
       TrajectoryCollection.AddTrajectory(ipTrajectory);
     }
   }
 
-  return TrajectoryCollection.MinimumCostTrajectory();
+  TTrajectory::TTrajectoryPtr pMinimumCostTrajectory = TrajectoryCollection.MinimumCostTrajectory();
+  const double kMinimumCost = pMinimumCostTrajectory->Cost();
+
+  std::cout << "===============================================================================" << std::endl;
+  std::cout << "Minimum Cost Trajectory:" << std::endl;
+  pMinimumCostTrajectory->PrintCost();
+  std::cout << "===============================================================================" << std::endl;
+  std::cout << std::endl << std::endl;
+
+  return pMinimumCostTrajectory;
 }
 
 //----------------------------------------------------------------------------------------------

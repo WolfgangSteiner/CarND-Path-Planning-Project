@@ -5,6 +5,9 @@
 #include "Eigen-3.3/Eigen/Core"
 #include <vector>
 //==============================================================================================
+#define MCostProperty(NAME,IDX)                                                                \
+  void Set##NAME##Cost(double aCost) { mCost(IDX) = aCost; }                                   \
+  double NAME##Cost() const { return mCost(IDX); }                                             \
 
 //==============================================================================================
 
@@ -43,14 +46,25 @@ public:
     double aDeltaT,
     double aDuration) const;
 
-  double JerkCost() const;
-  double SafetyDistanceCost(const Eigen::MatrixXd& aTrajectory, double aDeltaT, double aDuration) const;
+  double JerkCost(double aHorizonTime) const;
+  double SafetyDistanceCost(const Eigen::MatrixXd& aTrajectory, double aHorizonTime) const;
 
-  void AddCost(double c);
-  double Cost() const;
 
   double MinVelocity() const;
   double MaxVelocity() const;
+
+  double VelocityCost(double aTargetVeloctiy, double aHorizonTime) const;
+
+  double Duration() const;
+
+
+  MCostProperty(Jerk, 0)
+  MCostProperty(SafetyDistance, 1)
+  MCostProperty(Time, 2)
+  MCostProperty(Velocity, 3)
+
+  double Cost() const { return mCost.sum(); }
+
 
 public:
   static double SDerivCoeff(int idx, int deriv);
@@ -59,6 +73,7 @@ public:
   static Eigen::VectorXd SEvalStateAt(const Eigen::VectorXd& s_coeffs, const Eigen::VectorXd& d_coeffs, double t);
   static double SSafetyDistanceCost(double aDistance, double aVelocity);
 
+  void PrintCost() const;
 
 private:
   Eigen::VectorXd mStartState;
@@ -69,7 +84,9 @@ private:
   double mDuration{0.0};
   double mStartTime{0.0};
   double mTimeStep{0.02};
-  double mCost{0.0};
+  double mCostDeltaT{0.1};
+
+  Eigen::VectorXd mCost{Eigen::VectorXd::Zero(4)};
 };
 
 //==============================================================================================

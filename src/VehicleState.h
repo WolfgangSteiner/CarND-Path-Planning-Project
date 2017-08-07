@@ -25,8 +25,17 @@ public:
     double aCurrentTime,
     const TSensorFusion& aSensorFusion) = 0;
 
+  void UpdateCostForTrajectory(
+    TTrajectory::TTrajectoryPtr pTrajectory,
+    const std::vector<Eigen::MatrixXd>& aOtherTrajectories);
+
 protected:
-  double mHorizonTime{1.0};
+  double mHorizonTime{4.0};
+  double mMaxVelocity{22};
+  double mVelocityCostFactor{5.0};
+  double mJerkCostFactor{0.5};
+  double mTimeCostFactor{0.0};
+  double mSafetyDistanceFactor{1000};
 };
 
 
