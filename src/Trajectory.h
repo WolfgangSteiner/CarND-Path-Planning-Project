@@ -31,7 +31,11 @@ public:
     double aCurrentS, double aCurrentD, double aVelocity, double aCurrentTime, double aDuration);
 
   static TTrajectoryPtr SVelocityKeepingTrajectory(
-    const Eigen::VectorXd& aStartState, double aTargetVelocity, double aCurrentTime, double aDuration);
+    const Eigen::VectorXd& aStartState,
+    double aTargetVelocity,
+    double aCurrentTime,
+    double aDuration,
+    double aTargetD);
 
   std::vector<Eigen::VectorXd> GetTrajectory() const;
   Eigen::VectorXd EvalAt(double t) const;
@@ -56,6 +60,7 @@ public:
   double VelocityCost(double aTargetVeloctiy, double aHorizonTime) const;
 
   double Duration() const;
+  double TargetD() const;
 
 
   MCostProperty(Jerk, 0)

@@ -1,26 +1,32 @@
 //==============================================================================================
 // Created by Wolfgang Steiner
 //==============================================================================================
-#ifndef KEEPLANESTATE_H
-#define KEEPLANESTATE_H
+#ifndef CHANGELANESTATE_H
+#define CHANGELANESTATE_H
 //==============================================================================================
 #include "VehicleState.h"
 //==============================================================================================
 
-class TKeepLaneState : public TVehicleState
+class TChangeLaneState : public TVehicleState
 {
 public:
-  TKeepLaneState() {};
-  virtual ~TKeepLaneState() override {};
+  TChangeLaneState(double aTargetLane)
+  : mTargetLane{aTargetLane}
+  {}
+
+  virtual ~TChangeLaneState() override {};
 
 public:
   virtual std::tuple<TTrajectory::TTrajectoryPtr,TVehicleState*> Execute(
     const Eigen::VectorXd& aCurrentState,
     double aCurrentTime,
     const TSensorFusion& aSensorFusion) override;
+
+private:
+  double mTargetLane;
 };
 
 
 //==============================================================================================
-#endif // KEEPLANESTATE_H
+#endif // CHANGELANESTATE_H
 //==============================================================================================

@@ -7,6 +7,8 @@
 //==============================================================================================
 class TSensorFusion;
 //==============================================================================================
+#include <tuple>
+//==============================================================================================
 
 class TVehicleState
 {
@@ -15,22 +17,13 @@ public:
   virtual ~TVehicleState() {}
 
 public:
-  virtual TTrajectory::TTrajectoryPtr Execute(
+  virtual std::tuple<TTrajectory::TTrajectoryPtr,TVehicleState*> Execute(
     const Eigen::VectorXd& aCurrentState,
     double aCurrentTime,
     const TSensorFusion& aSensorFusion) = 0;
-
-  virtual TVehicleState* NextVehicleState(
-    const Eigen::VectorXd& aCurrentState,
-    double aCurrentTime,
-    const TSensorFusion& aSensorFusion) = 0;
-
-  void UpdateCostForTrajectory(
-    TTrajectory::TTrajectoryPtr pTrajectory,
-    const std::vector<Eigen::MatrixXd>& aOtherTrajectories);
 
 protected:
-  double mHorizonTime{4.0};
+  double mHorizonTime{10.0};
   double mMaxVelocity{22};
   double mVelocityCostFactor{0.5};
   double mJerkCostFactor{0.5};

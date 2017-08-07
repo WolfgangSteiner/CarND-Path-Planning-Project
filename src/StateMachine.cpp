@@ -17,16 +17,19 @@ TTrajectory::TTrajectoryPtr TStateMachine::Execute(
   double aCurrentTime,
   const TSensorFusion& aSensorFusion)
 {
-  TTrajectory::TTrajectoryPtr pTrajectory = CurrentVehicleState()->Execute(aCurrentState, aCurrentTime, aSensorFusion);
-  TVehicleState* pNextVehicleState = CurrentVehicleState()->NextVehicleState(aCurrentState, aCurrentTime, aSensorFusion);
+  TTrajectory::TTrajectoryPtr pTrajectory;
+  TVehicleState* pNextState;
 
-  if (pNextVehicleState == nullptr)
+  std::tie(pTrajectory, pNextState) =
+    CurrentVehicleState()->Execute(aCurrentState, aCurrentTime, aSensorFusion);
+
+  if (pNextState == nullptr)
   {
     mStateQueue.pop_front();
   }
-  else if (pNextVehicleState != CurrentVehicleState())
+  else if (pNextState != CurrentVehicleState())
   {
-    mStateQueue.push_front(std::shared_ptr<TVehicleState>(pNextVehicleState));
+    mStateQueue.push_front(std::shared_ptr<TVehicleState>(pNextState));
   }
 
   return pTrajectory;

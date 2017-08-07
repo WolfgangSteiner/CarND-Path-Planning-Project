@@ -259,15 +259,33 @@ TTrajectory::TTrajectoryPtr TTrajectory::SConstantVelocityTrajectory(
 //----------------------------------------------------------------------------------------------
 
 TTrajectory::TTrajectoryPtr TTrajectory::SVelocityKeepingTrajectory(
-  const Eigen::VectorXd& aStartState, double aTargetVelocity, double aCurrentTime, double aDuration)
+  const Eigen::VectorXd& aStartState,
+  double aTargetVelocity,
+  double aCurrentTime,
+  double aDuration,
+  double aEndD)
 {
   TTrajectoryPtr pTrajectory(new TTrajectory());
   pTrajectory->mStartState = aStartState;
   pTrajectory->mStartTime = aCurrentTime;
   pTrajectory->mDuration = aDuration;
+  pTrajectory->mEndState(3) = aEndD;
 
   pTrajectory->mSCoeffs = SCalcVelocityKeepingSCoefficients(aStartState,aTargetVelocity,aDuration);
-  pTrajectory->mDCoeffs(0) = aStartState(3);
+
+  const double kCurrentD = aStartState(3);
+  if (kCurrentD == aEndD)
+  {
+    pTrajectory->mDCoeffs(0) = aStartState(3);
+  }
+  else
+  {
+    pTrajectory->mDCoeffs = SCalcTrajectoryCoefficients(
+      pTrajectory->mStartState.segment(3,3),
+      pTrajectory->mEndState.segment(3,3),
+      aDuration);
+  }
+
   pTrajectory->mIsFinalized = true;
 
   return pTrajectory;
@@ -342,6 +360,14 @@ bool TTrajectory::IsFinished(double t) const
 double TTrajectory::Duration() const
 {
   return mDuration;
+}
+
+
+//----------------------------------------------------------------------------------------------
+
+double TTrajectory::TargetD() const
+{
+  return mEndState(3);
 }
 
 

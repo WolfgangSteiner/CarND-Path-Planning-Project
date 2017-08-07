@@ -114,9 +114,8 @@ std::list<TOtherCar> TSensorFusion::OtherLeadingCarsInLane(const Eigen::VectorXd
 
 //----------------------------------------------------------------------------------------------
 
-std::list<TOtherCar> TSensorFusion::OtherNearbyCarsInLane(
+std::list<TOtherCar> TSensorFusion::OtherNearbyCars(
   const Eigen::VectorXd& aState,
-  int aLaneNumber,
   double aDeltaS) const
 {
   const double kCurrentS = aState(0);
@@ -126,9 +125,7 @@ std::list<TOtherCar> TSensorFusion::OtherNearbyCarsInLane(
   for (const auto& iPair  : mOtherCars)
   {
     const auto& iOtherCar = iPair.second;
-    if (iOtherCar.IsInLane(aLaneNumber)
-        && iOtherCar.S() > kCurrentS - aDeltaS
-        && iOtherCar.S() < kCurrentS + aDeltaS)
+    if (iOtherCar.S() > kCurrentS - aDeltaS && iOtherCar.S() < kCurrentS + aDeltaS)
     {
       Result.push_back(iOtherCar);
     }
