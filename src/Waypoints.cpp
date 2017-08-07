@@ -59,7 +59,7 @@ int TWaypoints::ClosestWaypoint(double x, double y) const
 	{
 		const double map_x = at(i).x_;
 		const double map_y = at(i).y_;
-		const double dist = NUtils::distance(x, y, map_x, map_y);
+		const double dist = NUtils::SDistance(x, y, map_x, map_y);
 
 		if(dist < closestLen)
 		{
@@ -123,10 +123,10 @@ int TWaypoints::PreviousWaypoint(int i) const
 //	//see if d value is positive or negative by comparing it to a center point
 //	const double center_x = 1000-prev_wp.x_;
 //	const double center_y = 2000-prev_wp.y_;
-//	const double centerToPos = NUtils::distance(center_x,center_y,x_x,x_y);
-//	const double centerToRef = NUtils::distance(center_x,center_y,proj_x,proj_y);
+//	const double centerToPos = NUtils::SDistance(center_x,center_y,x_x,x_y);
+//	const double centerToRef = NUtils::SDistance(center_x,center_y,proj_x,proj_y);
 //
-//	double frenet_d = NUtils::distance(x_x, x_y, proj_x, proj_y);
+//	double frenet_d = NUtils::SDistance(x_x, x_y, proj_x, proj_y);
 //	if(centerToPos <= centerToRef)
 //	{
 //		frenet_d *= -1;
@@ -136,10 +136,10 @@ int TWaypoints::PreviousWaypoint(int i) const
 //	double frenet_s = 0;
 //	for(int i = 0; i < idx_prev_wp; i++)
 //	{
-//		frenet_s += NUtils::distance(at(i), at(i+1));
+//		frenet_s += NUtils::SDistance(at(i), at(i+1));
 //	}
 //
-//	frenet_s += NUtils::distance(0,0,proj_x,proj_y);
+//	frenet_s += NUtils::SDistance(0,0,proj_x,proj_y);
 //
 //  return Vector2d(frenet_s, frenet_d);
 //}

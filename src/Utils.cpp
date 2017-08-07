@@ -22,7 +22,15 @@ double NUtils::rad2deg(double x)
 
 //----------------------------------------------------------------------------------------------
 
-double NUtils::distance(double x1, double y1, double x2, double y2)
+double NUtils::SDistance(double x1, double x2)
+{
+  return std::abs(x2 - x1);
+}
+
+
+//----------------------------------------------------------------------------------------------
+
+double NUtils::SDistance(double x1, double y1, double x2, double y2)
 {
    return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
 }
@@ -30,9 +38,9 @@ double NUtils::distance(double x1, double y1, double x2, double y2)
 
 //----------------------------------------------------------------------------------------------
 
-double NUtils::distance(const Waypoint& wp1, const Waypoint& wp2)
+double NUtils::SDistance(const Waypoint &wp1, const Waypoint &wp2)
 {
-  return NUtils::distance(wp1.x_, wp1.y_, wp2.x_, wp2.y_);
+  return NUtils::SDistance(wp1.x_, wp1.y_, wp2.x_, wp2.y_);
 }
 
 

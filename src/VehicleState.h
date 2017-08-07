@@ -32,7 +32,7 @@ public:
 protected:
   double mHorizonTime{4.0};
   double mMaxVelocity{22};
-  double mVelocityCostFactor{5.0};
+  double mVelocityCostFactor{0.5};
   double mJerkCostFactor{0.5};
   double mTimeCostFactor{0.0};
   double mSafetyDistanceFactor{1000};

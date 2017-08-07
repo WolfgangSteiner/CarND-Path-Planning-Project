@@ -9,8 +9,9 @@ namespace NUtils
 {
   double deg2rad(double x);
   double rad2deg(double x);
-  double distance(double x1, double y1, double x2, double y2);
-  double distance(const Waypoint& wp1, const Waypoint& wp2);
+  double SDistance(double x1, double y1, double x2, double y2);
+  double SDistance(const Waypoint &wp1, const Waypoint &wp2);
+  double SDistance(double x1, double x2);
   int SLaneNumberForD(double d);
   double SDForLaneNumber(int aLaneNumber);
   double SLaneWidth();

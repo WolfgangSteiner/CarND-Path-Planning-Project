@@ -12,7 +12,7 @@ using Eigen::MatrixXd;
 using std::vector;
 //==============================================================================================
 
-double TTrajectory::SSafetyDistanceCost(double aDistance, double aVelocity)
+double TTrajectory::SLongitudinalSafetyDistanceCost(double aDistance, double aVelocity)
 {
   const double kSafetyDistance = aVelocity * 3.6 / 2.0;
   if (aDistance > 1.25 * kSafetyDistance)
@@ -22,6 +22,47 @@ double TTrajectory::SSafetyDistanceCost(double aDistance, double aVelocity)
   else
   {
     return std::exp(-aDistance / (-kSafetyDistance/std::log(0.1)));
+  }
+}
+
+
+//----------------------------------------------------------------------------------------------
+
+double TTrajectory::SLateralSafetyDistanceCost(double aDistance)
+{
+  const double kSafetyDistance = 1.5;
+  if (aDistance > 1.25 * kSafetyDistance)
+  {
+    return 0.0;
+  }
+  else
+  {
+    return std::exp(-aDistance / (-kSafetyDistance/std::log(0.1)));
+  }
+}
+
+
+//----------------------------------------------------------------------------------------------
+
+static double SSafetyDistanceCost(
+  double aLongitudinalDistance,
+  double aLateralDistance,
+  double aVelocity)
+{
+  const double kLongitudinalDistanceCost = TTrajectory::SLongitudinalSafetyDistanceCost(aLongitudinalDistance, aVelocity);
+  const double kLateralDistanceCost = TTrajectory::SLateralSafetyDistanceCost(aLateralDistance);
+
+  if (aLateralDistance > 1.5)
+  {
+    return 0.0;
+  }
+  else if (aLongitudinalDistance < 2.0)
+  {
+    return std::max(kLongitudinalDistanceCost, kLateralDistanceCost);
+  }
+  else
+  {
+    return kLongitudinalDistanceCost;
   }
 }
 
@@ -318,7 +359,7 @@ std::tuple<double,double> TTrajectory::MinDistanceToTrajectory(const TTrajectory
   {
     Eigen::VectorXd s1 = EvalAt(t);
     Eigen::VectorXd s2 = apOtherTrajectory->EvalAt(t);
-    const double Dist = NUtils::distance(s1(0), s1(3), s2(0), s2(3));
+    const double Dist = NUtils::SDistance(s1(0), s1(3), s2(0), s2(3));
     if (Dist < MinDist)
     {
       MinDist = Dist;
@@ -350,7 +391,7 @@ std::tuple<double,double> TTrajectory::MinDistanceToTrajectory(
   for (int i = 0; i < n; ++i)
   {
     Eigen::VectorXd s1 = EvalAt(t);
-    const double Dist = NUtils::distance(s1(0), s1(3), aTrajectory(i,0), aTrajectory(i,1));
+    const double Dist = NUtils::SDistance(s1(0), s1(3), aTrajectory(i, 0), aTrajectory(i, 1));
     if (Dist < MinDist)
     {
       MinDist = Dist;
@@ -398,7 +439,7 @@ double TTrajectory::VelocityCost(double aTargetVelocity, double aHorizonTime) co
 
   for (int i = 0; i < n; ++i)
   {
-    const double kVelocity = SEvalAt(mSCoeffs, t, 1);
+    const double kVelocity = SEvalAt(mSCoeffs, std::min(t, mDuration), 1);
     Cost += pow(aTargetVelocity - kVelocity, 2);
     t += mCostDeltaT;
   }
@@ -423,9 +464,12 @@ double TTrajectory::SafetyDistanceCost(
   for (int i = 0; i < n; ++i)
   {
     const Eigen::VectorXd s1 = EvalAt(t);
-    const double kDist = NUtils::distance(s1(0), s1(3), s2(i,0), s2(i,3));
+    const double kLongitudinalDist = NUtils::SDistance(s1(0), s2(i, 0));
+    const double kLateralDist = NUtils::SDistance(s1(3), s2(i, 1));
     const double kSpeed = SEvalAt(mSCoeffs, t - mStartTime, 1);
-    Cost += SSafetyDistanceCost(kDist, kSpeed);
+
+    Cost += SSafetyDistanceCost(kLongitudinalDist, kLateralDist, kSpeed);
+
     t += mCostDeltaT;
   }
 

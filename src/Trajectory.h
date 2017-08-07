@@ -71,7 +71,8 @@ public:
   static double SEvalAt(const Eigen::VectorXd& c, double t, int deriv);
   static Eigen::VectorXd SEvalStateAt(const Eigen::VectorXd& s_coeffs, double t);
   static Eigen::VectorXd SEvalStateAt(const Eigen::VectorXd& s_coeffs, const Eigen::VectorXd& d_coeffs, double t);
-  static double SSafetyDistanceCost(double aDistance, double aVelocity);
+  static double SLongitudinalSafetyDistanceCost(double aDistance, double aVelocity);
+  static double SLateralSafetyDistanceCost(double aDistance);
 
   void PrintCost() const;
 
