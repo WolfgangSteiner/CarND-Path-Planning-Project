@@ -23,43 +23,32 @@ public:
     const Eigen::VectorXd& start_state,
     const Eigen::VectorXd& end_state,
     const double start_t,
-    const double duration);
+    const double aDurationS,
+    const double aDurationD);
 
-  TTrajectory(double end_s_d, double end_d, double delta_s, double delta_t);
-
-  static TTrajectoryPtr SConstantVelocityTrajectory(
-    double aCurrentS, double aCurrentD, double aVelocity, double aCurrentTime, double aDuration);
+  TTrajectory(double end_s_d, double end_d, double delta_s, double mDurationS, double mDurationD);
 
   static TTrajectoryPtr SVelocityKeepingTrajectory(
     const Eigen::VectorXd& aStartState,
-    double aTargetVelocity,
     double aCurrentTime,
-    double aDuration,
-    double aTargetD);
+    double aTargetVelocity,
+    double aTargetD,
+    double aDurationS,
+    double aDurationD);
 
-  std::vector<Eigen::VectorXd> GetTrajectory() const;
   Eigen::VectorXd EvalAt(double t) const;
-
-  void Finalize(const Eigen::VectorXd& aStartState, double aStartTime);
-  bool IsFinished(double t) const;
-
-  std::tuple<double,double> MinDistanceToTrajectory(const TTrajectoryPtr apOtherTrajectory) const;
-
-  std::tuple<double,double> MinDistanceToTrajectory(
-    const Eigen::MatrixXd& aTrajectory,
-    double aDeltaT,
-    double aDuration) const;
 
   double JerkCost(double aHorizonTime) const;
   double SafetyDistanceCost(const Eigen::MatrixXd& aTrajectory, double aHorizonTime) const;
-
 
   double MinVelocity() const;
   double MaxVelocity() const;
 
   double VelocityCost(double aTargetVeloctiy, double aHorizonTime) const;
+  double LaneOffsetCost(double aDuration) const;
 
-  double Duration() const;
+  double DurationS() const;
+  double DurationD() const;
   double TargetD() const;
 
 
@@ -67,9 +56,9 @@ public:
   MCostProperty(SafetyDistance, 1)
   MCostProperty(Time, 2)
   MCostProperty(Velocity, 3)
+  MCostProperty(LaneOffset, 4)
 
   double Cost() const { return mCost.sum(); }
-
 
 public:
   static double SDerivCoeff(int idx, int deriv);
@@ -87,12 +76,13 @@ private:
   Eigen::VectorXd mSCoeffs;
   Eigen::VectorXd mDCoeffs;
   bool mIsFinalized{false};
-  double mDuration{0.0};
+  double mDurationS{0.0};
+  double mDurationD{0.0};
   double mStartTime{0.0};
   double mTimeStep{0.02};
   double mCostDeltaT{0.1};
 
-  Eigen::VectorXd mCost{Eigen::VectorXd::Zero(4)};
+  Eigen::VectorXd mCost{Eigen::VectorXd::Zero(5)};
 };
 
 //==============================================================================================

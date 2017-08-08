@@ -10,8 +10,9 @@
 class TChangeLaneState : public TVehicleState
 {
 public:
-  TChangeLaneState(double aTargetLane)
-  : mTargetLane{aTargetLane}
+  TChangeLaneState(int aStartLane, int aTargetLane)
+  : mStartLane(aStartLane)
+  , mTargetLane{aTargetLane}
   {}
 
   virtual ~TChangeLaneState() override {};
@@ -23,7 +24,8 @@ public:
     const TSensorFusion& aSensorFusion) override;
 
 private:
-  double mTargetLane;
+  int mStartLane;
+  int mTargetLane;
 };
 
 

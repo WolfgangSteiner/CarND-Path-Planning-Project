@@ -21,7 +21,28 @@ public:
   void Predict(double aDeltaT);
 
   std::list<TOtherCar> OtherLeadingCarsInLane(const Eigen::VectorXd& aState) const;
-  std::list<TOtherCar> OtherNearbyCars(const Eigen::VectorXd& aState, double aDeltaS=200.0) const;
+  std::list<TOtherCar> OtherNearbyCarsInLane(
+    const Eigen::VectorXd& aState, int aTargetLane, double aDeltaS=200.0) const;
+
+  std::vector<Eigen::MatrixXd> LeadingVehicleTrajectoriesInLane(
+    const Eigen::VectorXd& aState,
+    double aDeltaT,
+    double aDuration) const;
+
+  std::vector<Eigen::MatrixXd> OtherVehicleTrajectoriesInTargetLane(
+    const Eigen::VectorXd& aState,
+    int aTargetLane,
+    double aDeltaT,
+    double aDuration) const;
+
+
+private:
+  std::vector<Eigen::MatrixXd> GetTrajectoriesForOtherCars(
+    std::list<TOtherCar>& aOtherCars,
+    double aDeltaT,
+    double aDuration) const;
+
+
 
 private:
   std::unordered_map<int,TOtherCar> mOtherCars;

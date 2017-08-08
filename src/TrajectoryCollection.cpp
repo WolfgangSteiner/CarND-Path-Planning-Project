@@ -6,13 +6,9 @@
 
 //==============================================================================================
 
-TTrajectoryCollection::TTrajectoryCollection(
-  double aMaxVelocity,
-  double aHorizonTime,
-  const std::vector<Eigen::MatrixXd>& aOtherVehicleTrajectories)
+TTrajectoryCollection::TTrajectoryCollection(double aMaxVelocity, double aHorizonTime)
 : mMaxVelocity(aMaxVelocity)
 , mHorizonTime(aHorizonTime)
-, mOtherVehicleTrajectories(aOtherVehicleTrajectories)
 {}
 
 
@@ -22,6 +18,27 @@ void TTrajectoryCollection::AddTrajectory(TTrajectory::TTrajectoryPtr apTrajecto
 {
   mTrajectoryList.push_back(apTrajectory);
   UpdateCostForTrajectory(apTrajectory);
+}
+
+
+//----------------------------------------------------------------------------------------------
+
+void TTrajectoryCollection::SetOtherVehicleTrajectories(
+  const std::vector<Eigen::MatrixXd>& aOtherVehicleTrajectories)
+{
+  mOtherVehicleTrajectories = aOtherVehicleTrajectories;
+}
+
+
+//----------------------------------------------------------------------------------------------
+
+void TTrajectoryCollection::AddOtherVehicleTrajectories(
+  const std::vector<Eigen::MatrixXd>& aOtherVehicleTrajectories)
+{
+  mOtherVehicleTrajectories.insert(
+    mOtherVehicleTrajectories.end(),
+    aOtherVehicleTrajectories.begin(),
+    aOtherVehicleTrajectories.end());
 }
 
 
@@ -51,7 +68,7 @@ TTrajectory::TTrajectoryPtr TTrajectoryCollection::MinimumCostTrajectory()
 void TTrajectoryCollection::UpdateCostForTrajectory(TTrajectory::TTrajectoryPtr apTrajectory)
 {
   const double kJerkCost = mJerkCostFactor * apTrajectory->JerkCost(mHorizonTime);
-  const double kTimeCost = mTimeCostFactor * apTrajectory->Duration();
+  const double kTimeCost = mTimeCostFactor * apTrajectory->DurationS();
   const double kMinVelocity = apTrajectory->MinVelocity();
   const double kMaxVelocity = apTrajectory->MaxVelocity();
   double VelocityCost = mVelocityCostFactor * apTrajectory->VelocityCost(mMaxVelocity, mHorizonTime);
@@ -77,6 +94,7 @@ void TTrajectoryCollection::UpdateCostForTrajectory(TTrajectory::TTrajectoryPtr 
   apTrajectory->SetJerkCost(kJerkCost);
   apTrajectory->SetTimeCost(kTimeCost);
   apTrajectory->SetSafetyDistanceCost(mSafetyDistanceFactor * MaxSafetyDistanceCost);
+  apTrajectory->SetLaneOffsetCost(mLaneOffsetFactor * apTrajectory->LaneOffsetCost(kDuration));
 
 #if 0
   apTrajectory->PrintCost();

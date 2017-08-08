@@ -114,24 +114,101 @@ std::list<TOtherCar> TSensorFusion::OtherLeadingCarsInLane(const Eigen::VectorXd
 
 //----------------------------------------------------------------------------------------------
 
-std::list<TOtherCar> TSensorFusion::OtherNearbyCars(
+std::list<TOtherCar> TSensorFusion::OtherNearbyCarsInLane(
   const Eigen::VectorXd& aState,
+  int aTargetLane,
   double aDeltaS) const
 {
   const double kCurrentS = aState(0);
 
+  std::list<TOtherCar> CarsInLane;
+
+  for (const auto& iPair : mOtherCars)
+  {
+    const auto &iOtherCar = iPair.second;
+    if (iOtherCar.IsInLane(aTargetLane))
+    {
+      CarsInLane.push_back(iOtherCar);
+    }
+  }
+
   std::list<TOtherCar> Result;
 
-  for (const auto& iPair  : mOtherCars)
+  if (CarsInLane.size() == 0)
   {
-    const auto& iOtherCar = iPair.second;
-    if (iOtherCar.S() > kCurrentS - aDeltaS && iOtherCar.S() < kCurrentS + aDeltaS)
+    return Result;
+  }
+
+  CarsInLane.sort([](const TOtherCar& CarA, const TOtherCar& CarB) { return CarA.S() < CarB.S(); });
+
+  auto PrevIter = CarsInLane.end();
+
+  for (auto Iter = CarsInLane.begin(); Iter != CarsInLane.end(); ++Iter)
+  {
+    const double iS = (*Iter).S();
+    if (iS <= kCurrentS)
     {
-      Result.push_back(iOtherCar);
+      PrevIter = Iter;
+    }
+  }
+
+  if (PrevIter == CarsInLane.end())
+  {
+    Result.push_back(CarsInLane.front());
+  }
+  else
+  {
+    Result.push_back(*PrevIter);
+    auto NextIter = PrevIter;
+    ++NextIter;
+    if (NextIter != CarsInLane.end())
+    {
+      Result.push_back(*NextIter);
     }
   }
 
   return Result;
+}
+
+
+//----------------------------------------------------------------------------------------------
+
+std::vector<Eigen::MatrixXd> TSensorFusion::LeadingVehicleTrajectoriesInLane(
+  const Eigen::VectorXd& aState,
+  double aDeltaT,
+  double aDuration) const
+{
+  auto LeadingCars = OtherLeadingCarsInLane(aState);
+  return GetTrajectoriesForOtherCars(LeadingCars, aDeltaT, aDuration);
+}
+
+
+//----------------------------------------------------------------------------------------------
+
+std::vector<Eigen::MatrixXd> TSensorFusion::OtherVehicleTrajectoriesInTargetLane(
+  const Eigen::VectorXd& aState,
+  int aTargetLane,
+  double aDeltaT,
+  double aDuration) const
+{
+  auto OtherCars = OtherNearbyCarsInLane(aState, aTargetLane);
+  return GetTrajectoriesForOtherCars(OtherCars, aDeltaT, aDuration);
+}
+
+
+//----------------------------------------------------------------------------------------------
+
+std::vector<Eigen::MatrixXd> TSensorFusion::GetTrajectoriesForOtherCars(
+  std::list<TOtherCar>& aOtherCars,
+  double aDeltaT,
+  double aDuration) const
+{
+  std::vector<Eigen::MatrixXd> Trajectories;
+  for (TOtherCar& iOtherCar : aOtherCars)
+  {
+    Trajectories.push_back(iOtherCar.CurrentTrajectory(aDeltaT, aDuration));
+  }
+  return Trajectories;
 }
 
 

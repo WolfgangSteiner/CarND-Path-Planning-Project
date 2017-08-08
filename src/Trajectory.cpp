@@ -14,14 +14,22 @@ using std::vector;
 
 double TTrajectory::SLongitudinalSafetyDistanceCost(double aDistance, double aVelocity)
 {
-  const double kSafetyDistance = aVelocity * 3.6 / 2.0;
-  if (aDistance > 1.25 * kSafetyDistance)
+  const double kSafetyDistance = aVelocity * 3.6 / 4.0;
+  static const double alpha = 2.0;
+  static const double c_max = 1.0;
+  static const double c_min = 0.05;
+  static const double d0 = kSafetyDistance;
+  static const double d1 = 10.0;
+  static const double B = (c_max - c_min) / (std::exp(alpha * d1) - std::exp(alpha * d0));
+  static const double A = c_max - B * std::exp(alpha * d1);
+
+  if (aDistance > kSafetyDistance)
   {
     return 0.0;
   }
   else
   {
-    return std::exp(-aDistance / (-kSafetyDistance/std::log(0.1)));
+    return A + B * std::exp(alpha * aDistance);
   }
 }
 
@@ -30,8 +38,8 @@ double TTrajectory::SLongitudinalSafetyDistanceCost(double aDistance, double aVe
 
 double TTrajectory::SLateralSafetyDistanceCost(double aDistance)
 {
-  const double kSafetyDistance = 1.5;
-  if (aDistance > 1.25 * kSafetyDistance)
+  const double kSafetyDistance = 3.5;
+  if (aDistance >= NUtils::SLaneWidth())
   {
     return 0.0;
   }
@@ -52,17 +60,60 @@ static double SSafetyDistanceCost(
   const double kLongitudinalDistanceCost = TTrajectory::SLongitudinalSafetyDistanceCost(aLongitudinalDistance, aVelocity);
   const double kLateralDistanceCost = TTrajectory::SLateralSafetyDistanceCost(aLateralDistance);
 
-  if (aLateralDistance > 1.5)
+  if (aLateralDistance > 3.5)
   {
     return 0.0;
   }
-  else if (aLongitudinalDistance < 2.0)
+  else if (aLongitudinalDistance < 5.0)
   {
     return std::max(kLongitudinalDistanceCost, kLateralDistanceCost);
   }
   else
   {
     return kLongitudinalDistanceCost;
+  }
+}
+
+
+//----------------------------------------------------------------------------------------------
+
+static double SLaneOffsetCost(double aD)
+{
+  const int kLaneNumber = NUtils::SLaneNumberForD(aD);
+  const double kLaneCenter = NUtils::SDForLaneNumber(kLaneNumber);
+  const double kDistanceToLaneCenter = NUtils::SDistance(kLaneCenter, aD);
+  static const double alpha = 4.0;
+  static const double c_max = 1.0;
+  static const double c_min = 0.05;
+  static const double d0 = 0.25;
+  static const double d1 = 0.5 * NUtils::SLaneWidth();
+  static const double B = (c_max - c_min) / (std::exp(alpha * d1) - std::exp(alpha * d0));
+  static const double A = c_max - B * std::exp(alpha * d1);
+
+  if (kDistanceToLaneCenter <= 0.25)
+  {
+    return 0.0;
+  }
+  else
+  {
+    return A + B * std::exp(alpha * kDistanceToLaneCenter);
+  }
+}
+
+
+//----------------------------------------------------------------------------------------------
+
+static double SVelocityCost(double vs, double vd, double vmax)
+{
+  const double v = sqrt(vs*vs + vd*vd);
+
+  if (v >= vmax)
+  {
+    return 1e6;
+  }
+  else
+  {
+    return pow(vmax - v, 2);
   }
 }
 
@@ -205,7 +256,8 @@ TTrajectory::TTrajectory()
 , mSCoeffs{VectorXd::Zero(6)}
 , mDCoeffs{VectorXd::Zero(6)}
 , mIsFinalized{false}
-, mDuration{0.0}
+, mDurationS{0.0}
+, mDurationD{0.0}
 , mStartTime{0.0}
 {
 }
@@ -217,20 +269,23 @@ TTrajectory::TTrajectory(
   const Eigen::VectorXd& start_state,
   const Eigen::VectorXd& end_state,
   const double start_t,
-  const double duration)
+  const double aDurationS,
+  const double aDurationD)
 : mStartTime(start_t)
-, mDuration(duration)
+, mDurationD(aDurationS)
+, mDurationS(aDurationD)
 , mIsFinalized(true)
 {
-  mSCoeffs = SCalcTrajectoryCoefficients(start_state.head(3), end_state.head(3), duration);
-  mDCoeffs = SCalcTrajectoryCoefficients(start_state.segment(3,3), end_state.segment(3,3), duration);
+  mSCoeffs = SCalcTrajectoryCoefficients(start_state.head(3), end_state.head(3), mDurationS);
+  mDCoeffs = SCalcTrajectoryCoefficients(start_state.segment(3,3), end_state.segment(3,3), mDurationD);
 }
 
 //----------------------------------------------------------------------------------------------
 
-TTrajectory::TTrajectory(double end_s_d, double end_d, double delta_s, double delta_t)
+TTrajectory::TTrajectory(double end_s_d, double end_d, double delta_s, double aDurationS, double aDurationD)
 : mStartTime(0.0)
-, mDuration(delta_t)
+, mDurationS(aDurationS)
+, mDurationD(aDurationD)
 {
   mStartState = VectorXd::Zero(6);
   mEndState = VectorXd(6);
@@ -240,41 +295,25 @@ TTrajectory::TTrajectory(double end_s_d, double end_d, double delta_s, double de
 
 //----------------------------------------------------------------------------------------------
 
-TTrajectory::TTrajectoryPtr TTrajectory::SConstantVelocityTrajectory(
-  double aCurrentS, double aCurrentD, double aVelocity, double aCurrentTime, double aDuration)
-{
-  TTrajectoryPtr pTrajectory(new TTrajectory());
-  pTrajectory->mStartState << aCurrentS, aVelocity, 0.0, aCurrentD, 0.0, 0.0;
-  pTrajectory->mEndState << aCurrentS + aVelocity * aDuration, aVelocity, 0.0, aCurrentD, 0.0, 0.0;
-  pTrajectory->mSCoeffs << aCurrentS, aVelocity, 0.0, 0.0, 0.0, 0.0;
-  pTrajectory->mDCoeffs << aCurrentD, 0.0, 0.0, 0.0, 0.0, 0.0;
-  pTrajectory->mIsFinalized = true;
-  pTrajectory->mStartTime = aCurrentTime;
-  pTrajectory->mDuration = aDuration;
-
-  return pTrajectory;
-}
-
-
-//----------------------------------------------------------------------------------------------
-
 TTrajectory::TTrajectoryPtr TTrajectory::SVelocityKeepingTrajectory(
   const Eigen::VectorXd& aStartState,
-  double aTargetVelocity,
   double aCurrentTime,
-  double aDuration,
-  double aEndD)
+  double aTargetVelocity,
+  double aTargetD,
+  double aDurationS,
+  double aDurationD)
 {
   TTrajectoryPtr pTrajectory(new TTrajectory());
   pTrajectory->mStartState = aStartState;
   pTrajectory->mStartTime = aCurrentTime;
-  pTrajectory->mDuration = aDuration;
-  pTrajectory->mEndState(3) = aEndD;
+  pTrajectory->mEndState(3) = aTargetD;
+  pTrajectory->mDurationS = aDurationS;
+  pTrajectory->mDurationD = aDurationD;
 
-  pTrajectory->mSCoeffs = SCalcVelocityKeepingSCoefficients(aStartState,aTargetVelocity,aDuration);
+  pTrajectory->mSCoeffs = SCalcVelocityKeepingSCoefficients(aStartState, aTargetVelocity, aDurationS);
 
   const double kCurrentD = aStartState(3);
-  if (kCurrentD == aEndD)
+  if (kCurrentD == aTargetD)
   {
     pTrajectory->mDCoeffs(0) = aStartState(3);
   }
@@ -283,7 +322,7 @@ TTrajectory::TTrajectoryPtr TTrajectory::SVelocityKeepingTrajectory(
     pTrajectory->mDCoeffs = SCalcTrajectoryCoefficients(
       pTrajectory->mStartState.segment(3,3),
       pTrajectory->mEndState.segment(3,3),
-      aDuration);
+      aDurationD);
   }
 
   pTrajectory->mIsFinalized = true;
@@ -294,72 +333,44 @@ TTrajectory::TTrajectoryPtr TTrajectory::SVelocityKeepingTrajectory(
 
 //----------------------------------------------------------------------------------------------
 
-void TTrajectory::Finalize(const Eigen::VectorXd& aStartState, double aStartTime)
-{
-  mStartState = aStartState;
-  mEndState(0) += mStartState(0);
-  mStartTime = aStartTime;
-  mSCoeffs = SCalcTrajectoryCoefficients(mStartState.head(3), mEndState.head(3), mDuration);
-  mDCoeffs = SCalcTrajectoryCoefficients(mStartState.segment(3,3), mEndState.segment(3,3), mDuration);
-
-  //std::cout << "mStartState: " << mStartState << std::endl;
-  //std::cout << "mEndState: " << mEndState << std::endl;
-  //std::cout << "mSCoeffs: " << mSCoeffs << std::endl;
-
-  mIsFinalized = true;
-}
-
-
-//----------------------------------------------------------------------------------------------
-
 Eigen::VectorXd TTrajectory::EvalAt(double t) const
 {
   assert(mIsFinalized);
+  t -= mStartTime;
 
-  if (t > mStartTime + mDuration)
+  VectorXd state_s = SEvalStateAt(mSCoeffs, std::min(t, mDurationS));
+  VectorXd state_d = SEvalStateAt(mDCoeffs, std::min(t, mDurationD));
+
+  if (t > mDurationS)
   {
-    VectorXd state = SEvalStateAt(mSCoeffs, mDCoeffs, mDuration);
-    VectorXd speed_vector = VectorXd::Zero(6);
-    speed_vector(0) = state(1);
-    speed_vector(3) = state(4);
-    state += (t - mStartTime - mDuration) * speed_vector;
-    return state;
+    state_s(0) += state_s(1) * (t - mDurationS);
   }
-  else
+
+  if (t > mDurationD)
   {
-    return SEvalStateAt(mSCoeffs, mDCoeffs, t - mStartTime);
+    state_d(0) += state_d(1) * (t - mDurationD);
   }
+
+  VectorXd state(6);
+  state << state_s, state_d;
+
+  return state;
 }
 
 
 //----------------------------------------------------------------------------------------------
 
-std::vector<Eigen::VectorXd> TTrajectory::GetTrajectory() const
+double TTrajectory::DurationS() const
 {
-  vector<Eigen::VectorXd> trajectory;
-
-  for (double t = 0; t < mDuration; t += mTimeStep)
-  {
-    trajectory.push_back(SEvalStateAt(mSCoeffs, mDCoeffs, t));
-  }
-
-  return trajectory;
+  return mDurationS;
 }
 
 
 //----------------------------------------------------------------------------------------------
 
-bool TTrajectory::IsFinished(double t) const
+double TTrajectory::DurationD() const
 {
-  return t > mStartTime + mDuration;
-}
-
-
-//----------------------------------------------------------------------------------------------
-
-double TTrajectory::Duration() const
-{
-  return mDuration;
+  return mDurationS;
 }
 
 
@@ -373,71 +384,9 @@ double TTrajectory::TargetD() const
 
 //----------------------------------------------------------------------------------------------
 
-std::tuple<double,double> TTrajectory::MinDistanceToTrajectory(const TTrajectoryPtr apOtherTrajectory) const
-{
-  double t = mStartTime;
-  double MinDist = 1.0e9;
-  double MinDist_t = 0.0;
-
-  assert(mDuration <= 10.0);
-
-  while (t < mStartTime + mDuration)
-  {
-    Eigen::VectorXd s1 = EvalAt(t);
-    Eigen::VectorXd s2 = apOtherTrajectory->EvalAt(t);
-    const double Dist = NUtils::SDistance(s1(0), s1(3), s2(0), s2(3));
-    if (Dist < MinDist)
-    {
-      MinDist = Dist;
-      MinDist_t = t;
-    }
-
-    t += mTimeStep;
-  }
-
-  return std::make_tuple(MinDist, MinDist_t);
-}
-
-
-//----------------------------------------------------------------------------------------------
-
-std::tuple<double,double> TTrajectory::MinDistanceToTrajectory(
-  const Eigen::MatrixXd& aTrajectory,
-  double aDeltaT,
-  double aDuration) const
-{
-  double t = mStartTime;
-  double MinDist = 1.0e9;
-  double MinDist_t = 0.0;
-
-  assert(aDuration <= 10.0);
-
-  const int n = int(aDuration / aDeltaT);
-
-  for (int i = 0; i < n; ++i)
-  {
-    Eigen::VectorXd s1 = EvalAt(t);
-    const double Dist = NUtils::SDistance(s1(0), s1(3), aTrajectory(i, 0), aTrajectory(i, 1));
-    if (Dist < MinDist)
-    {
-      MinDist = Dist;
-      MinDist_t = t;
-    }
-
-    t += aDeltaT;
-  }
-
-  return std::make_tuple(MinDist, MinDist_t);
-}
-
-
-//----------------------------------------------------------------------------------------------
-
 double TTrajectory::JerkCost(double aHorizonTime) const
 {
-  double Cs = 0.0;
-  double Cd = 0.0;
-
+  double Cost = 0.0;
   const double n = aHorizonTime / mCostDeltaT;
 
   for (double t = 0; t < aHorizonTime; t+=mCostDeltaT)
@@ -446,11 +395,10 @@ double TTrajectory::JerkCost(double aHorizonTime) const
     const double Jd = SEvalAt(mDCoeffs, t, 3);
     assert(Js == Js);
     assert(Jd == Jd);
-    Cs += Js*Js;
-    Cd += Jd*Jd;
+    Cost += (Jd + Js);
   }
 
-  return (Cs + 2.0 * Cd) / n;
+  return Cost / n;
 }
 
 
@@ -465,12 +413,12 @@ double TTrajectory::VelocityCost(double aTargetVelocity, double aHorizonTime) co
 
   for (int i = 0; i < n; ++i)
   {
-    const double kVelocity = SEvalAt(mSCoeffs, std::min(t, mDuration), 1);
-    Cost += pow(aTargetVelocity - kVelocity, 2);
+    const double vs = SEvalAt(mSCoeffs, std::min(t, mDurationS), 1);
+    const double vd = SEvalAt(mDCoeffs, std::min(t, mDurationD), 1);
+
+    Cost += SVelocityCost(vs, vd, aTargetVelocity);
     t += mCostDeltaT;
   }
-
-  //assert(Cost / n <= pow(aTargetVelocity, 2));
 
   return Cost / n;
 }
@@ -505,11 +453,32 @@ double TTrajectory::SafetyDistanceCost(
 
 //----------------------------------------------------------------------------------------------
 
+double TTrajectory::LaneOffsetCost(double aDuration) const
+{
+  double Cost = 0.0;
+
+  double t = 0.0;
+  const int n = int(aDuration / mCostDeltaT);
+
+  for (int i = 0; i < n; ++i)
+  {
+    const double iD = SEvalAt(mDCoeffs, std::min(t, mDurationD), 0);
+    Cost += SLaneOffsetCost(iD);
+
+    t += mCostDeltaT;
+  }
+
+  return Cost / n;
+}
+
+
+//----------------------------------------------------------------------------------------------
+
 double TTrajectory::MinVelocity() const
 {
   double MinVelocity = 1e9;
 
-  for (double t = 0; t < mDuration; t+=mTimeStep)
+  for (double t = 0; t < mDurationS; t+=mTimeStep)
   {
     MinVelocity = std::min(MinVelocity, SEvalAt(mSCoeffs, t, 1));
   }
@@ -524,7 +493,7 @@ double TTrajectory::MaxVelocity() const
 {
   double MaxVelocity = -1e9;
 
-  for (double t = 0; t < mDuration; t+=mTimeStep)
+  for (double t = 0; t < mDurationS; t+=mTimeStep)
   {
     MaxVelocity = std::max(MaxVelocity, SEvalAt(mSCoeffs, t, 1));
   }
@@ -538,13 +507,14 @@ double TTrajectory::MaxVelocity() const
 void TTrajectory::PrintCost() const
 {
   std::cout
+    << " v_min: "  << MinVelocity()
+    << " v_max "   << MaxVelocity()
     << " DC: "     << SafetyDistanceCost()
     << " VC: "     << VelocityCost()
     << " JC: "     << JerkCost()
+    << " LC: "     << LaneOffsetCost()
     << " TC: "     << TimeCost()
     << " C: "      << Cost()
-    << " v_min: "  << MinVelocity()
-    << " v_max "   << MaxVelocity()
     << std::endl;
 }
 

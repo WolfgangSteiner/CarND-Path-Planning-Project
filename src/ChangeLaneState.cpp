@@ -8,6 +8,7 @@
 #include "TrajectoryCollection.h"
 //==============================================================================================
 #include <tuple>
+#include <iostream>
 //==============================================================================================
 
 
@@ -20,24 +21,43 @@ std::tuple<TTrajectory::TTrajectoryPtr,TVehicleState*> TChangeLaneState::Execute
   const double kLaneWidth = NUtils::SLaneWidth();
   const int kCurrentLane = NUtils::SLaneNumberForD(kCurrentD);
   const double kTargetD = NUtils::SDForLaneNumber(mTargetLane);
+  const double kStartD = NUtils::SDForLaneNumber(mStartLane);
 
   std::vector<Eigen::MatrixXd> OtherTrajectories;
 
-  for (TOtherCar& iOtherCar : aSensorFusion.OtherNearbyCars(aCurrentState))
+  for (TOtherCar& iOtherCar : aSensorFusion.OtherLeadingCarsInLane(aCurrentState))
   {
     OtherTrajectories.push_back(iOtherCar.CurrentTrajectory(0.1, mHorizonTime));
   }
 
-  TTrajectoryCollection Trajectories(mMaxVelocity, mHorizonTime, OtherTrajectories);
+  TTrajectoryCollection Trajectories(mMaxVelocity, mHorizonTime);
+
+  Trajectories.SetOtherVehicleTrajectories(
+    aSensorFusion.OtherVehicleTrajectoriesInTargetLane(
+      aCurrentState, mStartLane, mCostDeltaT, mHorizonTime));
+
+  Trajectories.AddOtherVehicleTrajectories(
+    aSensorFusion.OtherVehicleTrajectoriesInTargetLane(
+      aCurrentState, mTargetLane, mCostDeltaT, mHorizonTime));
 
   for (double v = 0; v <= mMaxVelocity; v += 1.0)
   {
     for (double T = 1; T < 10.0; T += 1.0)
     {
       Trajectories.AddTrajectory(
-        TTrajectory::SVelocityKeepingTrajectory(aCurrentState, v, aCurrentTime, T, kTargetD));
+        TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, T, 2.0));
+
+//      Trajectories.AddTrajectory(
+//        TTrajectory::SVelocityKeepingTrajectory(aCurrentState, v, aCurrentTime, T, kStartD));
     }
   }
+
+  auto pMinimumCostTrajectory = Trajectories.MinimumCostTrajectory();
+
+//  if (pMinimumCostTrajectory->TargetD() == kStartD)
+//  {
+//    mTargetLane = mStartLane;
+//  }
 
   TVehicleState* pNextState = this;
   if (NUtils::SDistance(kCurrentD, kTargetD) < 0.1)
@@ -45,7 +65,14 @@ std::tuple<TTrajectory::TTrajectoryPtr,TVehicleState*> TChangeLaneState::Execute
     pNextState = nullptr;
   }
 
-  auto pMinimumCostTrajectory = Trajectories.MinimumCostTrajectory();
+
+  std::cout << "===============================================================================" << std::endl;
+  std::cout << "Minimum Cost Trajectory:" << std::endl;
+  pMinimumCostTrajectory->PrintCost();
+  std::cout << "===============================================================================" << std::endl;
+  std::cout << std::endl << std::endl;
+
+
   return std::make_tuple(pMinimumCostTrajectory, pNextState);
 }
 
