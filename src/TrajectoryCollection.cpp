@@ -9,6 +9,11 @@
 TTrajectoryCollection::TTrajectoryCollection(double aMaxVelocity, double aHorizonTime)
 : mMaxVelocity(aMaxVelocity)
 , mHorizonTime(aHorizonTime)
+, mVelocityCostFactor{0.5}
+, mJerkCostFactor{5}
+, mTimeCostFactor{0.0}
+, mLaneOffsetFactor{0.5}
+, mSafetyDistanceFactor{100}
 {}
 
 
@@ -46,7 +51,8 @@ void TTrajectoryCollection::AddOtherVehicleTrajectories(
 
 TTrajectory::TTrajectoryPtr TTrajectoryCollection::MinimumCostTrajectory()
 {
-  double MinCost = 1e9;
+  assert(mTrajectoryList.size());
+  double MinCost = 1.0e12;
   TTrajectory::TTrajectoryPtr pMinTrajectory;
 
   for (TTrajectory::TTrajectoryPtr ipTrajectory : mTrajectoryList)
@@ -55,6 +61,10 @@ TTrajectory::TTrajectoryPtr TTrajectoryCollection::MinimumCostTrajectory()
     {
       MinCost = ipTrajectory->Cost();
       pMinTrajectory = ipTrajectory;
+    }
+    else if (ipTrajectory->Cost() > 1.0e12)
+    {
+      ipTrajectory->PrintCost();
     }
   }
 

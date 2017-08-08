@@ -126,48 +126,13 @@ std::list<TOtherCar> TSensorFusion::OtherNearbyCarsInLane(
   for (const auto& iPair : mOtherCars)
   {
     const auto &iOtherCar = iPair.second;
-    if (iOtherCar.IsInLane(aTargetLane))
+    if (iOtherCar.IsInLane(aTargetLane) && NUtils::SDistance(iOtherCar.S(), aState(0)) < 200)
     {
       CarsInLane.push_back(iOtherCar);
     }
   }
 
-  std::list<TOtherCar> Result;
-
-  if (CarsInLane.size() == 0)
-  {
-    return Result;
-  }
-
-  CarsInLane.sort([](const TOtherCar& CarA, const TOtherCar& CarB) { return CarA.S() < CarB.S(); });
-
-  auto PrevIter = CarsInLane.end();
-
-  for (auto Iter = CarsInLane.begin(); Iter != CarsInLane.end(); ++Iter)
-  {
-    const double iS = (*Iter).S();
-    if (iS <= kCurrentS)
-    {
-      PrevIter = Iter;
-    }
-  }
-
-  if (PrevIter == CarsInLane.end())
-  {
-    Result.push_back(CarsInLane.front());
-  }
-  else
-  {
-    Result.push_back(*PrevIter);
-    auto NextIter = PrevIter;
-    ++NextIter;
-    if (NextIter != CarsInLane.end())
-    {
-      Result.push_back(*NextIter);
-    }
-  }
-
-  return Result;
+  return CarsInLane;
 }
 
 

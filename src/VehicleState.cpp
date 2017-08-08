@@ -4,5 +4,11 @@
 #include <iostream>
 //==============================================================================================
 
+double TVehicleState::VelocityCorrection(int aLaneNumber) const
+{
+  static double Factors[3] = {0.95, 0.975, 1.0};
+  return Factors[aLaneNumber];
+}
+
 //==============================================================================================
 

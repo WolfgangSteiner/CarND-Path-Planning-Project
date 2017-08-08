@@ -23,12 +23,11 @@ public:
     const TSensorFusion& aSensorFusion) = 0;
 
 protected:
+  double VelocityCorrection(int aLaneNumber) const;
+
+protected:
   double mHorizonTime{10.0};
-  double mMaxVelocity{21.5};
-  double mVelocityCostFactor{0.5};
-  double mJerkCostFactor{0.5};
-  double mTimeCostFactor{0.0};
-  double mSafetyDistanceFactor{1000};
+  double mMaxVelocity{49.0 * 0.447};
   double mCostDeltaT{0.1};
 };
 

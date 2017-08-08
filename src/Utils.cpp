@@ -61,7 +61,9 @@ int NUtils::SLaneNumberForD(double d)
 
 double NUtils::SDForLaneNumber(int aLaneNumber)
 {
-  static std::vector<double> sDVector = {-10.0, -6.0, -2.0};
+  // Define the rightmost lane slightly to the left in order to avoid
+  // "out of lane" simulator bugs due coordinate warping in curves.
+  static std::vector<double> sDVector = {-9.75, -6.0, -2.0};
   assert(aLaneNumber >= 0 && aLaneNumber <= 2);
   return sDVector[aLaneNumber];
 }

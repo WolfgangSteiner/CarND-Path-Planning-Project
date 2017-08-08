@@ -22,6 +22,7 @@ std::tuple<TTrajectory::TTrajectoryPtr,TVehicleState*> TChangeLaneState::Execute
   const int kCurrentLane = NUtils::SLaneNumberForD(kCurrentD);
   const double kTargetD = NUtils::SDForLaneNumber(mTargetLane);
   const double kStartD = NUtils::SDForLaneNumber(mStartLane);
+  const double kLaneChangeTime = abs(mTargetLane - mStartLane) * 4.0;
 
   std::vector<Eigen::MatrixXd> OtherTrajectories;
 
@@ -30,7 +31,10 @@ std::tuple<TTrajectory::TTrajectoryPtr,TVehicleState*> TChangeLaneState::Execute
     OtherTrajectories.push_back(iOtherCar.CurrentTrajectory(0.1, mHorizonTime));
   }
 
-  TTrajectoryCollection Trajectories(mMaxVelocity, mHorizonTime);
+  const double kVelocityCorrection =
+    std::min(VelocityCorrection(mStartLane), VelocityCorrection(mTargetLane));
+
+  TTrajectoryCollection Trajectories(mMaxVelocity * kVelocityCorrection, mHorizonTime);
 
   Trajectories.SetOtherVehicleTrajectories(
     aSensorFusion.OtherVehicleTrajectoriesInTargetLane(
@@ -45,7 +49,7 @@ std::tuple<TTrajectory::TTrajectoryPtr,TVehicleState*> TChangeLaneState::Execute
     for (double T = 1; T < 10.0; T += 1.0)
     {
       Trajectories.AddTrajectory(
-        TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, T, 2.0));
+        TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, T, kLaneChangeTime));
 
 //      Trajectories.AddTrajectory(
 //        TTrajectory::SVelocityKeepingTrajectory(aCurrentState, v, aCurrentTime, T, kStartD));

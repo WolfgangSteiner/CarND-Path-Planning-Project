@@ -58,7 +58,7 @@ public:
   MCostProperty(Velocity, 3)
   MCostProperty(LaneOffset, 4)
 
-  double Cost() const { return mCost.sum(); }
+  double Cost() const;
 
 public:
   static double SDerivCoeff(int idx, int deriv);

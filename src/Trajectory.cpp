@@ -14,8 +14,8 @@ using std::vector;
 
 double TTrajectory::SLongitudinalSafetyDistanceCost(double aDistance, double aVelocity)
 {
-  const double kSafetyDistance = aVelocity * 3.6 / 4.0;
-  static const double alpha = 2.0;
+  const double kSafetyDistance = aVelocity * 3.6 / 3.0;
+  static const double alpha = -2.0;
   static const double c_max = 1.0;
   static const double c_min = 0.05;
   static const double d0 = kSafetyDistance;
@@ -38,14 +38,23 @@ double TTrajectory::SLongitudinalSafetyDistanceCost(double aDistance, double aVe
 
 double TTrajectory::SLateralSafetyDistanceCost(double aDistance)
 {
-  const double kSafetyDistance = 3.5;
-  if (aDistance >= NUtils::SLaneWidth())
+  const double kSafetyDistance = 3.75;
+  const double kMinDistance = 2.0;
+  static const double alpha = -2.0;
+  static const double c_max = 1.0;
+  static const double c_min = 0.05;
+  static const double d0 = kSafetyDistance;
+  static const double d1 = kMinDistance;
+  static const double B = (c_max - c_min) / (std::exp(alpha * d1) - std::exp(alpha * d0));
+  static const double A = c_max - B * std::exp(alpha * d1);
+
+  if (aDistance >= kSafetyDistance)
   {
     return 0.0;
   }
   else
   {
-    return std::exp(-aDistance / (-kSafetyDistance/std::log(0.1)));
+    return A + B * std::exp(alpha * aDistance);
   }
 }
 
@@ -60,13 +69,22 @@ static double SSafetyDistanceCost(
   const double kLongitudinalDistanceCost = TTrajectory::SLongitudinalSafetyDistanceCost(aLongitudinalDistance, aVelocity);
   const double kLateralDistanceCost = TTrajectory::SLateralSafetyDistanceCost(aLateralDistance);
 
-  if (aLateralDistance > 3.5)
+  if (aLongitudinalDistance < 4.5)
   {
-    return 0.0;
+    if (aLateralDistance > 2.0)
+    {
+      return kLateralDistanceCost;
+    }
+    else
+    {
+      // We have already crashed!
+      return 1e6;
+    }
   }
-  else if (aLongitudinalDistance < 5.0)
+  else if (aLateralDistance > 3.5)
   {
-    return std::max(kLongitudinalDistanceCost, kLateralDistanceCost);
+    // Other car is on adjacent lane.
+    return 0.0;
   }
   else
   {
@@ -391,11 +409,11 @@ double TTrajectory::JerkCost(double aHorizonTime) const
 
   for (double t = 0; t < aHorizonTime; t+=mCostDeltaT)
   {
-    const double Js = SEvalAt(mSCoeffs, t, 3);
-    const double Jd = SEvalAt(mDCoeffs, t, 3);
+    const double Js = SEvalAt(mSCoeffs, std::min(t, mDurationS), 3);
+    const double Jd = SEvalAt(mDCoeffs, std::min(t, mDurationD), 3);
     assert(Js == Js);
     assert(Jd == Jd);
-    Cost += (Jd + Js);
+    Cost += (Jd*Jd + Js*Js);
   }
 
   return Cost / n;
@@ -440,7 +458,7 @@ double TTrajectory::SafetyDistanceCost(
     const Eigen::VectorXd s1 = EvalAt(t);
     const double kLongitudinalDist = NUtils::SDistance(s1(0), s2(i, 0));
     const double kLateralDist = NUtils::SDistance(s1(3), s2(i, 1));
-    const double kSpeed = SEvalAt(mSCoeffs, t - mStartTime, 1);
+    const double kSpeed = s1(1);
 
     Cost += SSafetyDistanceCost(kLongitudinalDist, kLateralDist, kSpeed);
 
@@ -500,6 +518,20 @@ double TTrajectory::MaxVelocity() const
 
   return MaxVelocity;
 }
+
+
+//----------------------------------------------------------------------------------------------
+
+double TTrajectory::Cost() const
+{
+  for (int i = 0; i < mCost.rows(); ++i)
+  {
+    assert(mCost(i) == mCost(i));
+  }
+
+  return mCost.sum();
+}
+
 
 
 //----------------------------------------------------------------------------------------------

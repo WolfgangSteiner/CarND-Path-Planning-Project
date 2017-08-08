@@ -37,13 +37,13 @@ private:
 
 
 private:
-  double mHorizonTime{10.0};
-  double mMaxVelocity{21.0};
-  double mVelocityCostFactor{5};
-  double mJerkCostFactor{0.5};
-  double mTimeCostFactor{0.0};
-  double mLaneOffsetFactor{1000.0};
-  double mSafetyDistanceFactor{1000};
+  double mHorizonTime;
+  double mMaxVelocity;
+  double mVelocityCostFactor;
+  double mJerkCostFactor;
+  double mTimeCostFactor;
+  double mLaneOffsetFactor;
+  double mSafetyDistanceFactor;
   std::deque<TTrajectory::TTrajectoryPtr> mTrajectoryList;
   std::vector<Eigen::MatrixXd> mOtherVehicleTrajectories;
 };

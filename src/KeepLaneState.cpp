@@ -21,7 +21,9 @@ std::tuple<TTrajectory::TTrajectoryPtr, TVehicleState*> TKeepLaneState::Execute(
   const double kCurrentD = aCurrentState(3);
   const double kLaneWidth = NUtils::SLaneWidth();
   const int kCurrentLane = NUtils::SLaneNumberForD(kCurrentD);
-  TTrajectoryCollection Trajectories(mMaxVelocity, mHorizonTime);
+  const double kLaneChangeTime = 4.0;
+
+  TTrajectoryCollection Trajectories(mMaxVelocity * VelocityCorrection(kCurrentLane), mHorizonTime);
   std::vector<Eigen::MatrixXd> LeadingVehicleTrajectories =
     aSensorFusion.LeadingVehicleTrajectoriesInLane(aCurrentState, mCostDeltaT, mHorizonTime);
 
@@ -55,10 +57,36 @@ std::tuple<TTrajectory::TTrajectoryPtr, TVehicleState*> TKeepLaneState::Execute(
       for (double T = 1; T < T_max; T += 1.0)
       {
         Trajectories.AddTrajectory(
-          TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, T, 2.0));
+          TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, T, kLaneChangeTime));
       }
     }
   }
+
+  if (kCurrentLane == 2)
+  {
+    const int kTargetLane = 0;
+    const double kTargetD = NUtils::SDForLaneNumber(kTargetLane);
+
+    Trajectories.AddOtherVehicleTrajectories(
+      aSensorFusion.OtherVehicleTrajectoriesInTargetLane(
+        aCurrentState, 0, mCostDeltaT, mHorizonTime));
+
+    Trajectories.AddOtherVehicleTrajectories(
+      aSensorFusion.OtherVehicleTrajectoriesInTargetLane(
+        aCurrentState, 1, mCostDeltaT, mHorizonTime));
+
+
+    for (double v = 0; v <= mMaxVelocity; v += 1.0)
+    {
+      for (double T = 1; T < T_max; T += 1.0)
+      {
+        Trajectories.AddTrajectory(
+          TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, T, 2.0 * kLaneChangeTime));
+      }
+    }
+  }
+
+
 
   if (kCurrentLane <= 1)
   {
@@ -75,10 +103,36 @@ std::tuple<TTrajectory::TTrajectoryPtr, TVehicleState*> TKeepLaneState::Execute(
       for (double T = 1; T < T_max; T += 1.0)
       {
         Trajectories.AddTrajectory(
-          TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, T, 2.0));
+          TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, T, kLaneChangeTime));
       }
     }
   }
+
+  if (kCurrentLane == 0)
+  {
+    const int kTargetLane = 2;
+    const double kTargetD = NUtils::SDForLaneNumber(kTargetLane);
+
+    Trajectories.SetOtherVehicleTrajectories(LeadingVehicleTrajectories);
+
+    Trajectories.AddOtherVehicleTrajectories(
+      aSensorFusion.OtherVehicleTrajectoriesInTargetLane(
+        aCurrentState, 1, mCostDeltaT, mHorizonTime));
+
+    Trajectories.AddOtherVehicleTrajectories(
+      aSensorFusion.OtherVehicleTrajectoriesInTargetLane(
+        aCurrentState, 2, mCostDeltaT, mHorizonTime));
+
+    for (double v = 0; v <= mMaxVelocity; v += 1.0)
+    {
+      for (double T = 1; T < T_max; T += 1.0)
+      {
+        Trajectories.AddTrajectory(
+          TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, T, 2.0 * kLaneChangeTime));
+      }
+    }
+  }
+
 
   TTrajectory::TTrajectoryPtr pMinimumCostTrajectory = Trajectories.MinimumCostTrajectory();
   const double kMinimumCost = pMinimumCostTrajectory->Cost();
