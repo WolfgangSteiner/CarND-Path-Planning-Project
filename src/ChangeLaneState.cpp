@@ -40,6 +40,13 @@ std::tuple<TTrajectory::TTrajectoryPtr,TVehicleState*> TChangeLaneState::Execute
     aSensorFusion.OtherVehicleTrajectoriesInTargetLane(
       aCurrentState, mStartLane, mCostDeltaT, mHorizonTime));
 
+  if (abs(mTargetLane - mStartLane) == 2)
+  {
+    Trajectories.AddOtherVehicleTrajectories(
+      aSensorFusion.OtherVehicleTrajectoriesInTargetLane(
+        aCurrentState, 1, mCostDeltaT, mHorizonTime));
+  }
+
   Trajectories.AddOtherVehicleTrajectories(
     aSensorFusion.OtherVehicleTrajectoriesInTargetLane(
       aCurrentState, mTargetLane, mCostDeltaT, mHorizonTime));
