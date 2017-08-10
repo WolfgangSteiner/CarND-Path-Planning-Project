@@ -40,6 +40,7 @@ private:
   double mHorizonTime;
   double mMaxVelocity;
   double mVelocityCostFactor;
+  double mAccelerationCostFactor;
   double mJerkCostFactor;
   double mTimeCostFactor;
   double mLaneOffsetFactor;

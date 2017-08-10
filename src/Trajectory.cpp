@@ -78,7 +78,7 @@ static double SSafetyDistanceCost(
     else
     {
       // We have already crashed!
-      return 1e6;
+      return 1000;
     }
   }
   else if (aLateralDistance > 3.5)
@@ -422,6 +422,24 @@ double TTrajectory::JerkCost(double aHorizonTime) const
 
 //----------------------------------------------------------------------------------------------
 
+double TTrajectory::AccelerationCost(double aHorizonTime) const
+{
+  double Cost = 0.0;
+  const double n = aHorizonTime / mCostDeltaT;
+
+  for (double t = 0; t < aHorizonTime; t+=mCostDeltaT)
+  {
+    const double As = SEvalAt(mSCoeffs, std::min(t, mDurationS), 2);
+    const double Ad = SEvalAt(mDCoeffs, std::min(t, mDurationD), 2);
+    Cost += (Ad*Ad + As*As);
+  }
+
+  return Cost / n;
+}
+
+
+//----------------------------------------------------------------------------------------------
+
 double TTrajectory::VelocityCost(double aTargetVelocity, double aHorizonTime) const
 {
   double Cost = 0.0;
@@ -543,6 +561,7 @@ void TTrajectory::PrintCost() const
     << " v_max "   << MaxVelocity()
     << " DC: "     << SafetyDistanceCost()
     << " VC: "     << VelocityCost()
+    << " AC: "     << AccelerationCost()
     << " JC: "     << JerkCost()
     << " LC: "     << LaneOffsetCost()
     << " TC: "     << TimeCost()

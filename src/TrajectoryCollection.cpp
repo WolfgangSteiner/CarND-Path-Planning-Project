@@ -10,10 +10,11 @@ TTrajectoryCollection::TTrajectoryCollection(double aMaxVelocity, double aHorizo
 : mMaxVelocity(aMaxVelocity)
 , mHorizonTime(aHorizonTime)
 , mVelocityCostFactor{0.5}
-, mJerkCostFactor{5}
+, mAccelerationCostFactor{1.0}
+, mJerkCostFactor{0.5}
 , mTimeCostFactor{0.0}
 , mLaneOffsetFactor{0.5}
-, mSafetyDistanceFactor{100}
+, mSafetyDistanceFactor{1000}
 {}
 
 
@@ -77,6 +78,7 @@ TTrajectory::TTrajectoryPtr TTrajectoryCollection::MinimumCostTrajectory()
 
 void TTrajectoryCollection::UpdateCostForTrajectory(TTrajectory::TTrajectoryPtr apTrajectory)
 {
+  const double kAccelerationCost = mAccelerationCostFactor * apTrajectory->AccelerationCost(mHorizonTime);
   const double kJerkCost = mJerkCostFactor * apTrajectory->JerkCost(mHorizonTime);
   const double kTimeCost = mTimeCostFactor * apTrajectory->DurationS();
   const double kMinVelocity = apTrajectory->MinVelocity();
@@ -101,6 +103,7 @@ void TTrajectoryCollection::UpdateCostForTrajectory(TTrajectory::TTrajectoryPtr 
   }
 
   apTrajectory->SetVelocityCost(VelocityCost);
+  apTrajectory->SetAccelerationCost(kAccelerationCost);
   apTrajectory->SetJerkCost(kJerkCost);
   apTrajectory->SetTimeCost(kTimeCost);
   apTrajectory->SetSafetyDistanceCost(mSafetyDistanceFactor * MaxSafetyDistanceCost);

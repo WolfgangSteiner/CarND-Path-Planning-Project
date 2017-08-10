@@ -38,6 +38,7 @@ public:
 
   Eigen::VectorXd EvalAt(double t) const;
 
+  double AccelerationCost(double aHorizonTime) const;
   double JerkCost(double aHorizonTime) const;
   double SafetyDistanceCost(const Eigen::MatrixXd& aTrajectory, double aHorizonTime) const;
 
@@ -51,12 +52,12 @@ public:
   double DurationD() const;
   double TargetD() const;
 
-
-  MCostProperty(Jerk, 0)
-  MCostProperty(SafetyDistance, 1)
-  MCostProperty(Time, 2)
-  MCostProperty(Velocity, 3)
-  MCostProperty(LaneOffset, 4)
+  MCostProperty(Velocity, 0)
+  MCostProperty(Acceleration, 1)
+  MCostProperty(Jerk, 2)
+  MCostProperty(SafetyDistance, 3)
+  MCostProperty(Time, 4)
+  MCostProperty(LaneOffset, 5)
 
   double Cost() const;
 
@@ -82,7 +83,7 @@ private:
   double mTimeStep{0.02};
   double mCostDeltaT{0.1};
 
-  Eigen::VectorXd mCost{Eigen::VectorXd::Zero(5)};
+  Eigen::VectorXd mCost{Eigen::VectorXd::Zero(6)};
 };
 
 //==============================================================================================
