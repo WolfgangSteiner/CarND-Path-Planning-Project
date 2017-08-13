@@ -25,6 +25,7 @@ public:
 
 public:
   TTrajectory::TTrajectoryPtr MinimumCostTrajectory();
+  TTrajectory::TTrajectoryPtr MinimumCostLaneChangingTrajectory(double aCurrentD, double aDeltaD);
 
 
 public:

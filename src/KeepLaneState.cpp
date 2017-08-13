@@ -18,14 +18,14 @@ std::tuple<TTrajectory::TTrajectoryPtr, TVehicleState*> TKeepLaneState::Execute(
   double aCurrentTime,
   const TSensorFusion& aSensorFusion)
 {
-  const double kCurrentD = aCurrentState(3);
+  const int kCurrentLane = NUtils::SLaneNumberForD(aCurrentState(3));
+  const double kCurrentD = NUtils::SDForLaneNumber(kCurrentLane);
   const double kLaneWidth = NUtils::SLaneWidth();
-  const int kCurrentLane = NUtils::SLaneNumberForD(kCurrentD);
   const double kLaneChangeTime = 4.0;
 
   TTrajectoryCollection Trajectories(mMaxVelocity * VelocityCorrection(kCurrentLane), mHorizonTime);
   std::vector<Eigen::MatrixXd> ThisLaneVehicleTrajectories =
-    aSensorFusion.OtherVehicleTrajectoriesInTargetLane(aCurrentState, kCurrentLane, mCostDeltaT, mHorizonTime);
+    aSensorFusion.LeadingVehicleTrajectoriesInLane(aCurrentState, kCurrentLane, mCostDeltaT, mHorizonTime);
 
   // Trajectories that stay in the current lane:
   Trajectories.SetOtherVehicleTrajectories(ThisLaneVehicleTrajectories);
@@ -37,7 +37,7 @@ std::tuple<TTrajectory::TTrajectoryPtr, TVehicleState*> TKeepLaneState::Execute(
     for (double T = 1; T < T_max; T += 1.0)
     {
       Trajectories.AddTrajectory(
-        TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kCurrentD, T, 0.0));
+        TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kCurrentD, T, T));
     }
   }
 
@@ -80,7 +80,7 @@ std::tuple<TTrajectory::TTrajectoryPtr, TVehicleState*> TKeepLaneState::Execute(
       for (double T = 1; T < T_max; T += 1.0)
       {
         Trajectories.AddTrajectory(
-          TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, T, 2.0 * kLaneChangeTime));
+          TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, T, kLaneChangeTime));
       }
     }
   }
@@ -121,7 +121,7 @@ std::tuple<TTrajectory::TTrajectoryPtr, TVehicleState*> TKeepLaneState::Execute(
       for (double T = 1; T < T_max; T += 1.0)
       {
         Trajectories.AddTrajectory(
-          TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, T, 2.0 * kLaneChangeTime));
+          TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, T, kLaneChangeTime));
       }
     }
   }
@@ -130,9 +130,22 @@ std::tuple<TTrajectory::TTrajectoryPtr, TVehicleState*> TKeepLaneState::Execute(
   TTrajectory::TTrajectoryPtr pMinimumCostTrajectory = Trajectories.MinimumCostTrajectory();
   const double kMinimumCost = pMinimumCostTrajectory->Cost();
 
+  auto pMinimumCostLaneChangingTrajectory1 = Trajectories.MinimumCostLaneChangingTrajectory(kCurrentD, NUtils::SLaneWidth());
+  auto pMinimumCostLaneChangingTrajectory2 = Trajectories.MinimumCostLaneChangingTrajectory(kCurrentD, 2.0 * NUtils::SLaneWidth());
+
   std::cout << "===============================================================================" << std::endl;
   std::cout << "Minimum Cost Trajectory:" << std::endl;
   pMinimumCostTrajectory->PrintCost();
+  if (pMinimumCostLaneChangingTrajectory1 != nullptr)
+  {
+    std::cout << "Minimum Cost Lane Changing Trajectory 1:" << std::endl;
+    pMinimumCostLaneChangingTrajectory1->PrintCost();
+  }
+  if (pMinimumCostLaneChangingTrajectory2 != nullptr)
+  {
+    std::cout << "Minimum Cost Lane Changing Trajectory 2:" << std::endl;
+    pMinimumCostLaneChangingTrajectory2->PrintCost();
+  }
   std::cout << "===============================================================================" << std::endl;
   std::cout << std::endl << std::endl;
 

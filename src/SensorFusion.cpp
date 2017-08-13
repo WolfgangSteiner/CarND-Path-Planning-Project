@@ -88,20 +88,20 @@ void TSensorFusion::Predict(double aDeltaT)
 }
 
 
-//==============================================================================================
+//----------------------------------------------------------------------------------------------
 
-std::list<TOtherCar> TSensorFusion::OtherLeadingCarsInLane(const Eigen::VectorXd& aState) const
+
+std::list<TOtherCar> TSensorFusion::OtherLeadingCarsInLane(const Eigen::VectorXd& aState, int aLane) const
 {
   const double kCurrentS = aState[0];
   const double kCurrentD = aState[3];
-  const int kCurrentLane = NUtils::SLaneNumberForD(kCurrentD);
 
   std::list<TOtherCar> Result;
 
   for (const auto& iPair  : mOtherCars)
   {
     const auto& iOtherCar = iPair.second;
-    if (iOtherCar.IsInLane(kCurrentLane) && iOtherCar.S() > kCurrentS)
+    if (iOtherCar.IsInLane(aLane) && iOtherCar.S() > kCurrentS)
     {
       Result.push_back(iOtherCar);
     }
@@ -111,6 +111,7 @@ std::list<TOtherCar> TSensorFusion::OtherLeadingCarsInLane(const Eigen::VectorXd
 
   return Result;
 }
+
 
 //----------------------------------------------------------------------------------------------
 
@@ -140,10 +141,11 @@ std::list<TOtherCar> TSensorFusion::OtherNearbyCarsInLane(
 
 std::vector<Eigen::MatrixXd> TSensorFusion::LeadingVehicleTrajectoriesInLane(
   const Eigen::VectorXd& aState,
+  int aLane,
   double aDeltaT,
   double aDuration) const
 {
-  auto LeadingCars = OtherLeadingCarsInLane(aState);
+  auto LeadingCars = OtherLeadingCarsInLane(aState, aLane);
   return GetTrajectoriesForOtherCars(LeadingCars, aDeltaT, aDuration);
 }
 

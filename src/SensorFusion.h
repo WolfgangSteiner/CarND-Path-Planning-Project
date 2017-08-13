@@ -20,12 +20,14 @@ public:
   void Update(const std::vector<std::vector<double>>& aSensorFusionData, double aCurrentS);
   void Predict(double aDeltaT);
 
-  std::list<TOtherCar> OtherLeadingCarsInLane(const Eigen::VectorXd& aState) const;
+  std::list<TOtherCar> OtherLeadingCarsInLane(const Eigen::VectorXd& aState, int aLane) const;
+
   std::list<TOtherCar> OtherNearbyCarsInLane(
     const Eigen::VectorXd& aState, int aTargetLane, double aDeltaS=200.0) const;
 
   std::vector<Eigen::MatrixXd> LeadingVehicleTrajectoriesInLane(
     const Eigen::VectorXd& aState,
+    int aLane,
     double aDeltaT,
     double aDuration) const;
 

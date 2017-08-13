@@ -11,7 +11,7 @@ set(sources src/main.cpp src/Waypoints.cpp src/Utils.cpp src/VehicleController.c
         src/Trajectory.cpp src/VehicleState.cpp src/KeepLaneState.cpp
         src/SensorFusion.cpp src/SensorFusion.h src/OtherCar.cpp
         src/TrajectoryCollection.cpp src/StateMachine.cpp src/KalmanFilter.cpp
-        src/ChangeLaneState.cpp)
+        src/ChangeLaneState.cpp src/LowpassFilter.cpp)
 
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")

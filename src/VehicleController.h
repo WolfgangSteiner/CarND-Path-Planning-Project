@@ -6,6 +6,7 @@
 #include "Trajectory.h"
 #include "SensorFusion.h"
 #include "StateMachine.h"
+#include "LowpassFilter.h"
 //==============================================================================================
 #include "Eigen-3.3/Eigen/Core"
 #include <vector>
@@ -39,6 +40,7 @@ private:
   TStateMachine mStateMachine;
   TWaypoints mWaypoints;
   TSensorFusion mSensorFusion;
+  TLowpassFilter mLowpassFilter;
 
   double mCurrentTime{0.0};
   double mPredictionHorizon{1.0};

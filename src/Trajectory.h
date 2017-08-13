@@ -4,6 +4,7 @@
 //==============================================================================================
 #include "Eigen-3.3/Eigen/Core"
 #include <vector>
+#include <memory>
 //==============================================================================================
 #define MCostProperty(NAME,IDX)                                                                \
   void Set##NAME##Cost(double aCost) { mCost(IDX) = aCost; }                                   \
@@ -47,6 +48,8 @@ public:
 
   double VelocityCost(double aTargetVeloctiy, double aHorizonTime) const;
   double LaneOffsetCost(double aDuration) const;
+  double TargetLaneCost() const;
+
 
   double DurationS() const;
   double DurationD() const;
@@ -58,6 +61,8 @@ public:
   MCostProperty(SafetyDistance, 3)
   MCostProperty(Time, 4)
   MCostProperty(LaneOffset, 5)
+  MCostProperty(Lane, 6)
+
 
   double Cost() const;
 
@@ -83,7 +88,7 @@ private:
   double mTimeStep{0.02};
   double mCostDeltaT{0.1};
 
-  Eigen::VectorXd mCost{Eigen::VectorXd::Zero(6)};
+  Eigen::VectorXd mCost{Eigen::VectorXd::Zero(7)};
 };
 
 //==============================================================================================

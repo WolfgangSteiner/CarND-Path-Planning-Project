@@ -2,6 +2,7 @@
 // Created by Wolfgang Steiner
 //==============================================================================================
 #include "TrajectoryCollection.h"
+#include "Utils.h"
 //==============================================================================================
 
 //==============================================================================================
@@ -9,9 +10,9 @@
 TTrajectoryCollection::TTrajectoryCollection(double aMaxVelocity, double aHorizonTime)
 : mMaxVelocity(aMaxVelocity)
 , mHorizonTime(aHorizonTime)
-, mVelocityCostFactor{0.5}
-, mAccelerationCostFactor{1.0}
-, mJerkCostFactor{0.5}
+, mVelocityCostFactor{2.0}
+, mAccelerationCostFactor{10.0}
+, mJerkCostFactor{0.05}
 , mTimeCostFactor{0.0}
 , mLaneOffsetFactor{0.5}
 , mSafetyDistanceFactor{1000}
@@ -74,6 +75,32 @@ TTrajectory::TTrajectoryPtr TTrajectoryCollection::MinimumCostTrajectory()
 }
 
 
+
+//----------------------------------------------------------------------------------------------
+
+TTrajectory::TTrajectoryPtr TTrajectoryCollection::MinimumCostLaneChangingTrajectory(
+  double aCurrentD,
+  double aDeltaD)
+{
+  assert(mTrajectoryList.size());
+  double MinCost = 1.0e12;
+  TTrajectory::TTrajectoryPtr pMinTrajectory;
+
+  for (TTrajectory::TTrajectoryPtr ipTrajectory : mTrajectoryList)
+  {
+    if (ipTrajectory->Cost() < MinCost
+        && abs(NUtils::SDistance(ipTrajectory->TargetD(), aCurrentD) - aDeltaD) < 0.1)
+    {
+      MinCost = ipTrajectory->Cost();
+      pMinTrajectory = ipTrajectory;
+    }
+  }
+
+  return pMinTrajectory;
+}
+
+
+
 //----------------------------------------------------------------------------------------------
 
 void TTrajectoryCollection::UpdateCostForTrajectory(TTrajectory::TTrajectoryPtr apTrajectory)
@@ -98,7 +125,7 @@ void TTrajectoryCollection::UpdateCostForTrajectory(TTrajectory::TTrajectoryPtr 
 
   for (const auto& iOtherTrajectory : mOtherVehicleTrajectories)
   {
-    const double kSafetyDistanceCost = apTrajectory->SafetyDistanceCost(iOtherTrajectory, kDuration);
+    const double kSafetyDistanceCost = apTrajectory->SafetyDistanceCost(iOtherTrajectory, mHorizonTime);
     MaxSafetyDistanceCost = std::max(MaxSafetyDistanceCost, kSafetyDistanceCost);
   }
 
@@ -108,6 +135,7 @@ void TTrajectoryCollection::UpdateCostForTrajectory(TTrajectory::TTrajectoryPtr 
   apTrajectory->SetTimeCost(kTimeCost);
   apTrajectory->SetSafetyDistanceCost(mSafetyDistanceFactor * MaxSafetyDistanceCost);
   apTrajectory->SetLaneOffsetCost(mLaneOffsetFactor * apTrajectory->LaneOffsetCost(kDuration));
+  apTrajectory->SetLaneCost(apTrajectory->TargetLaneCost());
 
 #if 0
   apTrajectory->PrintCost();

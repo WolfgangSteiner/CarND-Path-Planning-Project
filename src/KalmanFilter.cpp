@@ -21,7 +21,7 @@ TKalmanFilter::TKalmanFilter()
   mQ = MatrixXd::Zero(4,4);
   mR = MatrixXd::Identity(3,3) * 0.01;
 
-  mH = MatrixXd::Matrix(3,4);
+  mH = MatrixXd(3,4);
   mH << 1.0, 0.0, 0.0, 0.0,
     0.0, 1.0, 0.0, 0.0,
     0.0, 0.0, 1.0, 0.0;

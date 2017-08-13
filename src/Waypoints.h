@@ -14,13 +14,8 @@ public:
   TWaypoints();
 
 public:
-  int ClosestWaypoint(double x, double y) const;
-  int NextWaypoint(double x, double y, double theta) const;
-  int PreviousWaypoint(int i) const;
-
   //Eigen::Vector2d CalcFrenet(const Eigen::Vector2d& p, double theta) const;
   Eigen::Vector2d CalcFrenet(const Eigen::Vector2d& p, double s_start) const;
-  Eigen::Vector2d getXY(double s, double d) const;
   Eigen::Vector2d getXY_interpolated(double s, double d) const;
   Eigen::Vector2d GetNormalAt(double s) const;
 
