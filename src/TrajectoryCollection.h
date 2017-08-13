@@ -46,6 +46,7 @@ private:
   double mTimeCostFactor;
   double mLaneOffsetFactor;
   double mSafetyDistanceFactor;
+  double mLaneFactor;
   std::deque<TTrajectory::TTrajectoryPtr> mTrajectoryList;
   std::vector<Eigen::MatrixXd> mOtherVehicleTrajectories;
 };

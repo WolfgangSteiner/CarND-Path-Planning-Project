@@ -10,12 +10,13 @@
 TTrajectoryCollection::TTrajectoryCollection(double aMaxVelocity, double aHorizonTime)
 : mMaxVelocity(aMaxVelocity)
 , mHorizonTime(aHorizonTime)
-, mVelocityCostFactor{2.0}
-, mAccelerationCostFactor{10.0}
+, mVelocityCostFactor{1.0}
+, mAccelerationCostFactor{1.0}
 , mJerkCostFactor{0.05}
 , mTimeCostFactor{0.0}
 , mLaneOffsetFactor{0.5}
-, mSafetyDistanceFactor{1000}
+, mLaneFactor{0.0}
+, mSafetyDistanceFactor{250}
 {}
 
 
@@ -63,10 +64,6 @@ TTrajectory::TTrajectoryPtr TTrajectoryCollection::MinimumCostTrajectory()
     {
       MinCost = ipTrajectory->Cost();
       pMinTrajectory = ipTrajectory;
-    }
-    else if (ipTrajectory->Cost() > 1.0e12)
-    {
-      ipTrajectory->PrintCost();
     }
   }
 
@@ -135,7 +132,7 @@ void TTrajectoryCollection::UpdateCostForTrajectory(TTrajectory::TTrajectoryPtr 
   apTrajectory->SetTimeCost(kTimeCost);
   apTrajectory->SetSafetyDistanceCost(mSafetyDistanceFactor * MaxSafetyDistanceCost);
   apTrajectory->SetLaneOffsetCost(mLaneOffsetFactor * apTrajectory->LaneOffsetCost(kDuration));
-  apTrajectory->SetLaneCost(apTrajectory->TargetLaneCost());
+  apTrajectory->SetLaneCost(mLaneFactor * apTrajectory->TargetLaneCost());
 
 #if 0
   apTrajectory->PrintCost();

@@ -26,7 +26,7 @@ protected:
   double VelocityCorrection(int aLaneNumber) const;
 
 protected:
-  double mHorizonTime{10.0};
+  double mHorizonTime{4.0};
   double mMaxVelocity{49.0 * 0.447};
   double mCostDeltaT{0.1};
 };

@@ -30,6 +30,7 @@ public:
 
 private:
   TKalmanFilter mKalmanFilter;
+  Eigen::VectorXd mX;
 };
 
 

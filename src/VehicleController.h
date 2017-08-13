@@ -43,7 +43,7 @@ private:
   TLowpassFilter mLowpassFilter;
 
   double mCurrentTime{0.0};
-  double mPredictionHorizon{1.0};
+  double mPredictionHorizon{0.25};
   double mDisplayHorizon{2.0};
   bool mIsInitialized{false};
 };
