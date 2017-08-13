@@ -43,9 +43,9 @@
 
 \usepackage{titlesec} % Allows customization of titles
 \renewcommand\thesection{\Roman{section}} % Roman numerals for the sections
-\renewcommand\thesubsection{\roman{subsection}} % roman numerals for subsections
+\renewcommand\thesubsection{\alph{subsection}} % roman numerals for subsections
 \titleformat{\section}[block]{\large\scshape\centering}{\thesection.}{1em}{} % Change the look of the section titles
-\titleformat{\subsection}[block]{\large}{\thesubsection.}{1em}{} % Change the look of the section titles
+\titleformat{\subsection}{\itshape\bfseries}{\thesubsection.}{1ex}{} % Change the look of the section titles
 
 % \usepackage{fancyhdr} % Headers and footers
 % \pagestyle{fancy} % All pages have headers and footers
@@ -56,12 +56,14 @@
 
 \usepackage{titling} % Customizing the title section
 \usepackage{hyperref} % For hyperlinks in the PDF
-\usepackage{flushend}
+%\usepackage{flushend}
 \usepackage{tabularx}
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{graphicx}
 \usepackage{gensymb}
+\usepackage{multirow}
+\usepackage{stackengine}
 
 
 \renewcommand{\c}{\text{c}}
@@ -69,11 +71,14 @@
 \newcommand{\pihalf}{\frac{\pi}{2}}
 \newcommand{\T}[2]{\mbox{$_{#2}^{#1}{T}$}}
 \newcommand{\R}[2]{\mbox{$_{#2}^{#1}{R}$}}
-\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\code}[1]{{\texttt{#1}}}
 \newcommand{\acos}{\text{acos}}
 \newcommand{\asin}{\text{asin}}
 \newcommand{\figref}[1]{Fig.~\ref{fig:#1}}
 \newcommand{\tabref}[1]{Tab.~\ref{tab:#1}}
+
+\def\stackalignment{l}
+\newcommand{\imgframe}[2]{\topinset{\colorbox{black}{\textcolor{white}{#2}}}{\includegraphics[width=0.25\linewidth]{img/#1-#2.png}}{0cm}{0cm}}
 
 
 \lstset{
@@ -125,41 +130,95 @@
 % Print the title
 \maketitle
 
-%----------------------------------------------------------------------------------------
+%-------------------------------------------------------------------------------------------
 %	ARTICLE CONTENTS
-%----------------------------------------------------------------------------------------
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%-------------------------------------------------------------------------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction}
+The goal of this project is to implement a path planning algorithm that enables a car to autonomously navigate highway traffic. The main requirements are keeping a safe distance to
+the other cars, going as fast as the traffic and speed limits allow and to ensure a comfortable
+ride for the passengers by limiting the maximum acceleration and jerk.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Velocity Keeping Trajectory}
+In this project I followed the approach discussed in \cite{werling2010optimal}: The vehicle
+controller generates a multitude of candidate trajectories with different target speeds,
+durations, and target driving lanes. For each candidate trajectory, a cost function is evaluated
+that also involves the predicted trajectories of other nearby vehicles. The trajectory with
+the smallest cost is then executed next. This mechanism is complemented by a simple state machine
+that ensures the correct execution of the intended maneuvers.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Coordinate System and Waypoint Preprocessing}
+For this project I decided to work exclusively in Frenet coordinates \cite{Frenet–S42:online}.
+To facilitate this, I implemented the class \code{TWaypoints} that loads the waypoint coordinates from the supplied
+\code{csv} file and fits two splines to the $x$- and $y$-coordinates, both having the longitudinal
+$s$-coordinate as a parameter. In order to ensure a smooth transition at the starting point of the track,
+the first and the last waypoint of the track are repeated while subtracting/adding the maximum
+$s$-coordinate (i.e. length of the track).
+
+When defining trajectories in Frenet coordinates $(s,d)$, transforming into cartesian coordinates
+can be accomplished by evaluating the splines $f_x(s)$ and $f_y(s)$ at the s-coordinate and adding
+the normal to the curve, multiplied by the d-coordinate:
 \begin{equation}
-s(t) = a_0 + a_1 t + a_2 t^2 + a_3 t^3 + a_4 t^4
+  \begin{bmatrix}
+    x \\ y
+  \end{bmatrix}
+  =
+  \begin{bmatrix}
+    f_x(s) \\
+    f_y(s)
+  \end{bmatrix}
+  +
+  d\cdot
+  \begin{bmatrix}
+    -\frac{d}{ds} f_y(s) \\
+     \frac{d}{ds} f_x(s)
+  \end{bmatrix}
+  \label{eq:frenet_coordinates}
 \end{equation}
+
+The inverse transformation from Cartesian to Frenet coordinates is also required when
+initializing the vehicle's position from the first simulator update and when updating the
+positions of the other cars at each time step. The simulator does provide Frenet coordinates
+but they turned out to be of insufficient accuracy. Given a position in Cartesian coordinates $(x,y)$, the corresponding $s$-coordinate is computed by a simple gradient descent solver \cite{Gradient43:online}
+that minimizes the error term:
 \begin{equation}
-\dot{s}(t) = a_1 + 2 a_2 t + 3 a_3 t^2 + 4 a_4 t^3
+  J_{xy}(s) = \sqrt{(x - f_x(s))^2 + (y - f_y(s))^2}
 \end{equation}
-\begin{equation}
-\ddot{s}(t) = 2 a_2 + 6 a_3 t + 12 a_4 t^2
-\end{equation}
-\begin{equation}
-s(0) = a_0 = s_0
-\end{equation}
-\begin{equation}
-\dot s(0) = a_1 = \dot s_0
-\end{equation}
-\begin{equation}
-\ddot s(0) = 2 a_2 = \ddot s_0
-\end{equation}
-\begin{equation}
-s(T) = s_1 = s_0 + \dot{s}_0 T + \frac{1}{2}\ddot{s}_0 T^2 + a_3 T^3 + a_4 T^4
-\end{equation}
-\begin{equation}
-\dot s(T) = \dot s_1 = \dot s_0 + \ddot s_0 T + 3 a_3 T^2 + 4 a_4 T^3
-\end{equation}
-\begin{equation}
-\ddot s(T) = \ddot s_1 = \ddot s_0 + 6 a_3 T + 12 a_4 T^2
-\end{equation}
+After having established the point on the spline that is closest to the target position,
+the $d$-coordinate can be computed from \eqref{eq:frenet_coordinates}.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Jerk Minimizing Trajectories}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Velocity Keeping Trajectories}
+The most common state of the car is keeping a lane while maintaining a constant velocity, which
+should be as close as possible to the speed limit, and keeping a safe distance to the leading
+cars. As we are not interested in the exact position at the end of the trajectory, jerk minimizing
+trajectories can be generated from \emph{quartic} polynomials \cite{werling2010optimal}:
+\begin{align}
+s(t) &= a_0 + a_1 t + a_2 t^2 + a_3 t^3 + a_4 t^4\\
+\dot{s}(t) &= a_1 + 2 a_2 t + 3 a_3 t^2 + 4 a_4 t^3 \label{quartic2}\\
+\ddot{s}(t) &= 2 a_2 + 6 a_3 t + 12 a_4 t^2 \label{quartic3}
+\end{align}
+The boundary conditions at the \emph{start} of the trajectory are the longitudinal position $s_0$,
+velocity $\dot s_0$ and acceleration $\ddot s_0$ of the current state.
+From this, the first three parameters of the polynomials can be directly determined:
+\begin{align}
+s(0) &= s_0 = a_0\\
+\dot s(0) &= \dot s_0 = a_1\\
+\ddot s(0) &= \ddot s_0 = 2 a_2
+\end{align}
+The boundary conditions at the \emph{end} of the trajectory are the longitudinal velocity $\dot s_1$
+and acceleration $\ddot s_1$ (which is commonly zero). From \eqref{quartic2} and \eqref{quartic3}
+we can now formulate the linear system of equations as:
+\begin{align}
+% s(T) &= s_1 = s_0 + \dot{s}_0 T + \frac{1}{2}\ddot{s}_0 T^2 + a_3 T^3 + a_4 T^4\\
+\dot s(T) &= \dot s_1 = \dot s_0 + \ddot s_0 T + 3 a_3 T^2 + 4 a_4 T^3\\
+\ddot s(T) &= \ddot s_1 = \ddot s_0 + 6 a_3 T + 12 a_4 T^2
+\end{align}
+This can be reformulated as the following matrix equation which in the code is solved for the
+missing parameters $a_3$ and $a_4$ by applying the Householder transformation from the \emph{Eigen}
+library:
 \begin{equation}
   \begin{bmatrix}
     \dot s_1 - \dot s_0 - \ddot s_0 T \\
@@ -174,8 +233,198 @@ s(T) = s_1 = s_0 + \dot{s}_0 T + \frac{1}{2}\ddot{s}_0 T^2 + a_3 T^3 + a_4 T^4
 \begin{bmatrix}
   a_3 \\ a_4
 \end{bmatrix}
+\label{quartic_matrix}
 \end{equation}
 
+\subsection{Lane Changing Trajectories}
+For the longitudinal component of lane changing trajectories, the exact end position of in
+the $s$-coordinate is still of no interest. For the lateral component $d$ this is different:
+The trajectory should end at a specific $d$-coordinate, which is usually the center of the
+target lane. So I combine a \emph{quartic} polynomial for the longitudinal
+with a \emph{quintic} polynomial for the lateral component of the trajectory. The derivation
+is similar to that of \eqref{quartic_matrix} and leads to a linear equation system of the form:
+\begin{equation}
+\small
+\begin{bmatrix}
+d_1 - d_0 - \dot d_0 T - \frac{\ddot d_0}{2}  T^2\\
+      \dot d_1 - \dot d_0 - \ddot d_0 T\\
+      \ddot d_1 - \ddot d_0
+\end{bmatrix}
+=
+\begin{bmatrix}
+  T^3&    T^4&    T^5\\
+3 T^2&  4 T^3&  5 T^4\\
+ 6 T& 12 T^2& 20 T^3
+\end{bmatrix}
+\cdot
+\begin{bmatrix}
+a_3 \\ a_4 \\ a_5
+\end{bmatrix}
+\end{equation}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Tracking of Other Vehicles}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Each time the vehicle controller is called by the simulator, sensor fusion data is received.
+This data contains a unique ID for each vehicle along with position and speed in Cartesian
+coordinates. The sensor data also contains the current position in Frenet coordinates, which,
+unfortunately, is generally not accurate enough to be usable.\hspace{-.08em}\footnote{
+The longitudinal Frenet coordinate $s$ is used as a starting point for
+the gradient descent solver.}
+
+The sensor data is passed to the \code{TSensorFusion} which maintains a hash table of
+\code{TOtherCar} objects, indexed by ID. Each \code{TOtherCar} maintains its own Kalman Filter that is used to predict its future trajectory during the calculation of the safety distance cost. Each vehicle position is converted from Cartesian to Frenet coordinates $(s,d)$, while the total velocity is used for $\dot s$. With these state variables, the Kalman Filter of each other vechicle is updated at each iteration.
+
+The implementation of the Kalman Filter has one peculiarity in that the current state can
+be saved/restored before/after a prediction. This is required because the future vehicle positions have to be predicted far into the future (e.g. 10s), based on the most
+recent measurement update (approx. every 20~-~60ms), in order to calculate safety distance
+costs vs. candidate trajectories.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Trajectory Optimization}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+For finding optimal trajectories I follow the approach described in \cite{werling2010optimal}.
+At every time step a multitude of trajectories are generated by varying the duration $T$ and
+the target velocity $\dot s$. For lane changing trajectories, the target $d$-coordinate is also
+(discretely) varied. These candidate trajectories are then evaluated using the following
+cost function:
+\begin{equation}
+J_{traj} = k_v J_{v} + k_a J_{a} + k_j J_{j} + J_{\Delta d} + J_{d} + k_{\rho} \underset{i}\max(J_{\rho}(i))
+\end{equation}
+
+Here, $J_{v}$, $J_{a}$ and $J_{j}$ are terms that penalize the deviation from the target velocity,
+the maximum acceleration and the maximum jerk, respectively:
+
+\begin{equation}
+J_{v} = \frac{1}{T_H}\int\limits_0^{T_{H}} \left(\sqrt{\dot s(t)^2 + \dot d(t)^2} - v_{max}\right)^2 dt
+\end{equation}
+
+\begin{equation}
+J_{a} = \frac{1}{T_H}\int\limits_0^{T_{H}}\ddot s(t)^2 + \ddot d(t)^2 dt
+\end{equation}
+
+\begin{equation}
+J_{j} = \frac{1}{T_H}\int\limits_0^{T_{H}}\dddot s(t)^2 + \dddot d(t)^2 dt
+\end{equation}
+
+
+The safety distance of the trajectory in relation to the predicted trajectory of the $i$-th
+other vehicle is calculated by the integral:
+
+\begin{equation}
+J_{\rho,i} = \frac{1}{T_H} \int\limits_0^{T_H} j_{\rho,i}(t) dt
+\end{equation}
+
+\begin{equation}
+j_{\rho,i}(t) =
+\begin{cases}
+  0 & d > d_{min} \vee \rho(t) > \rho_s(v(t)) \\
+  1 + \frac{1 - c_{min}}{1-e^{-\alpha \rho_s(v)}} \left(e^{-\alpha(\rho(t) - \rho_{0})} - 1 \right) & \text{otherwise}
+  \end{cases}
+\end{equation}
+\begin{align}
+\rho(t) &= s(t) - s_i(t) \\
+\rho_s(v) &= v \cdot t_s + \rho_0
+\end{align}
+
+
+
+Here  is the velocity-dependent safety distance that is calculated based on
+a constant-time rule with $t_s = 2s$. The parameter $\alpha$ can be used to tune the steepness
+of the cost function,
+
+When the lateral distance is greater than a safety threshold, the two cars drive on
+different lanes and the cost is set to zero. Also, when the distance is greater than
+the safety distance $d_s(v)$ the cost is also set to zero.
+
+The middle lane is favorable to the other two lanes because it offers two possible direct
+lane changes for overtaking cars. The cost $J_d$ therefore slightly penalizes driving
+on the left and right lanes:
+\begin{equation}
+J_d =
+\begin{cases}
+0.0 & \text{current lane is center lane} \\
+1.0 & \text{otherwise}
+\end{cases}
+\end{equation}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{State Machine}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+I implemented an object-based state machine (\code{TStateMachine}) to handle the different
+vehicle states (\code{TVehicleState}). For this it maintains a queue of currently active states
+with the top of the queue being the current state. Every time the vehicle controller is called
+by the simulator, the trajectory is first updated with the previous coordinates in order to
+ensure its smoothness. Then the state machine executes the current vehicle state, which returns
+an updated trajectory along with a pointer to the \emph{next} active state. This pointer can
+have one of three different values:
+\begin{enumerate}
+\item When the current state returns a \code{this} pointer, it remains the current state.
+\item Returning a \code{nullptr} signifies that the current state is finished. The previous
+(or \emph{parent}) state will become current again.
+\item If the current state returns a pointer to a newly constructed state, it thereby spawns a new
+sub-task which will then be current.
+\end{enumerate}
+
+
+\subsection{Keep Lane State}
+The \code{TKeepLaneState} is the default state of the car. It generates velocity keeping
+trajectories that allow the car to keep the lane close to the speed limit, while also keeping
+a safe distance to the leading cars. In addition, this state will generate candidate
+trajectories that change to an adjacent lane and to the next-to-adjacent lane, if applicable.
+
+If the car has to follow a slowly leading vehicle, the cost of this trajectory will
+increase due to $J_{v}$ increasing. As soon as a trajectory with a different target lane
+has a lower total cost, the lane keeping state will construct and return an object of type \code{TChangeLaneState}, which will then execute the lane change.
+
+
+\subsection{Change Lane State}
+The \code{TChangeLaneState} is responsible for executing a safe lane change maneuver. When this
+state is executed for the first time after construction, the car has already started to move
+towards the target lane. The lane changing state will generate target trajectories with varying
+target velocities and durations in the $s$-direction. For the lateral direction, a quintic polynomial is generated with the target $d$-coordinate in the center of the target lane and with a fixed lane change duration.\hspace{-0.08em}\footnote{The lane change duration is fixed to one
+value in order to limit the number of generated candidate trajectories.} For all of these candidate trajectories, the predicted trajectories of all nearby
+cars in the traversed lanes are considered for evaluating the safety distance cost $J_\rho$.
+
+In addition, fall-back trajectories are generated that return the car to the original lane.
+These trajectories enable the car to react to other vehicles' sudden
+lane changes while executing the maneuver. The safety distance cost of the best lane
+change trajectory is compared to that of the best fall-back trajectory. Should the safety
+distance cost of the lane change increase, the fall-back trajectory will be selected and the
+safer lane will be set as the new target lane, thus avoid collisions with other cars mid-maneuver.
+
+As soon as the lateral Frenet coordinate $d$ is close to its target value, the change lane state
+will return the \code{nullptr}. Consequently the lane change maneuver will end, the object is
+deallocated, and trajectory planning is returned to the parent keep lane state object.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Results and Outlook}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The implemented path planner is able to safely navigate through highway traffic near the speed
+limit. Owing to the large planning horizon of 10s, the car slows down or switches lane with
+foresight when approaching a slower leading car from behind. It also keeps clear of faster
+cars that come up from behind. An example of a lane changing maneuver is shown in \figref{fallback}. In the maneuver shown, the lane change is interrupted by another car that
+overtakes on the middle lane. Because the lane changing trajectory has become unsafe, the
+controller steers the car back to the original lane and lets the overtaking car pass before
+initiating and completing the lane change in a second attempt.
+
+\begin{figure}[ht]
+\centering
+\imgframe{fallback}{1}\imgframe{fallback}{2}\imgframe{fallback}{3}\imgframe{fallback}{4}\vspace{-1mm}
+\imgframe{fallback}{5}\imgframe{fallback}{6}\imgframe{fallback}{7}\imgframe{fallback}{8}\vspace{-1mm}
+\imgframe{fallback}{9}\imgframe{fallback}{10}\imgframe{fallback}{11}\imgframe{fallback}{12}
+\caption{\label{fig:fallback}Example of a fall-back maneuver during lane changing. The car initiates a lane
+change maneuver (1-2) but then resets the target lane to the original lane
+(3). It then safely returns to the original lane (4-5). The
+car that caused the fall-back maneuver is seen overtaking on the middle lane in (6-7).
+After the red car has passed, a new lane change maneuver is initiated and successfully
+completed (8-12).}
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 %----------------------------------------------------------------------------------------
