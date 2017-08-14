@@ -15,7 +15,6 @@ using std::vector;
 
 TVehicleController::TVehicleController()
 : mStateMachine(new TKeepLaneState())
-, mLowpassFilter{0.9}
 {
   mCurrentState = VectorXd::Zero(6);
 }
@@ -34,7 +33,6 @@ void TVehicleController::UpdateTrajectory(
   if (!mIsInitialized)
   {
     const auto f = mWaypoints.CalcFrenet(Eigen::Vector2d(aCarState.x, aCarState.y), aCarState.s);
-    // mLowpassFilter.Init(NUtils::SMakeVector(aCarState.x, aCarState.y));
     mCurrentState << f(0), 0.0, 0.0, f(1), 0.0, 0.0;
     mIsInitialized = true;
   }
@@ -50,7 +48,6 @@ void TVehicleController::UpdateTrajectory(
     const double y = aPreviousPathY[i];
     aNextPathX.push_back(x);
     aNextPathY.push_back(y);
-   // mLowpassFilter.Init(NUtils::SMakeVector(x,y));
   }
 
   const double kDelayT = std::max(0.0, kPreviousPredictionPathSize * 0.02);
@@ -70,7 +67,6 @@ void TVehicleController::UpdateTrajectory(
     }
 
     Eigen::VectorXd p = mWaypoints.getXY_interpolated(iCurrentState(0), iCurrentState(3));
-    //p = mLowpassFilter.Update(p);
     iCurrentTime += 0.02;
     iCurrentState = mpCurrentTrajectory->EvalAt(iCurrentTime);
 
