@@ -49,6 +49,13 @@ void TTrajectoryCollection::AddOtherVehicleTrajectories(
     aOtherVehicleTrajectories.end());
 }
 
+//----------------------------------------------------------------------------------------------
+
+const std::vector<Eigen::MatrixXd>& TTrajectoryCollection::OtherVehicleTrajectories() const
+{
+  return mOtherVehicleTrajectories;
+}
+
 
 //----------------------------------------------------------------------------------------------
 
@@ -110,7 +117,6 @@ void TTrajectoryCollection::UpdateCostForTrajectory(TTrajectory::TTrajectoryPtr 
   double VelocityCost = mVelocityCostFactor * apTrajectory->VelocityCost(mMaxVelocity, mHorizonTime);
   //assert(VelocityCost <= pow(mMaxVelocity, 2) * mVelocityCostFactor);
 
-
   if (kMinVelocity < 0 || kMaxVelocity > mMaxVelocity)
   {
     VelocityCost += 1000;
@@ -118,19 +124,11 @@ void TTrajectoryCollection::UpdateCostForTrajectory(TTrajectory::TTrajectoryPtr 
 
   const double kDuration = mHorizonTime;
   const double kDeltaT = 0.1;
-  double MaxSafetyDistanceCost = 0;
-
-  for (const auto& iOtherTrajectory : mOtherVehicleTrajectories)
-  {
-    const double kSafetyDistanceCost = apTrajectory->SafetyDistanceCost(iOtherTrajectory, mHorizonTime);
-    MaxSafetyDistanceCost = std::max(MaxSafetyDistanceCost, kSafetyDistanceCost);
-  }
-
+  apTrajectory->UpdateSafetyDistanceCost(mOtherVehicleTrajectories, mHorizonTime, mSafetyDistanceFactor);
   apTrajectory->SetVelocityCost(VelocityCost);
   apTrajectory->SetAccelerationCost(kAccelerationCost);
   apTrajectory->SetJerkCost(kJerkCost);
   apTrajectory->SetTimeCost(kTimeCost);
-  apTrajectory->SetSafetyDistanceCost(mSafetyDistanceFactor * MaxSafetyDistanceCost);
   apTrajectory->SetLaneOffsetCost(mLaneOffsetFactor * apTrajectory->LaneOffsetCost(kDuration));
   apTrajectory->SetLaneCost(mLaneFactor * apTrajectory->TargetLaneCost());
 

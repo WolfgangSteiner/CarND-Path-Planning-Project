@@ -90,9 +90,6 @@ std::tuple<TTrajectory::TTrajectoryPtr,TVehicleState*> TChangeLaneState::Execute
     {
       for (double Td = Td_min; Td < Td_max; Td += Td_delta)
       {
-        LaneChangeTrajectories.AddTrajectory(
-          TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, Ts, Td));
-
         if (FallbackLane != mTargetLane)
         {
           FallbackTrajectories.AddTrajectory(
@@ -102,12 +99,13 @@ std::tuple<TTrajectory::TTrajectoryPtr,TVehicleState*> TChangeLaneState::Execute
     }
   }
 
-  auto pMinimumLaneChangeTrajectory = LaneChangeTrajectories.MinimumCostTrajectory();
 
+  mpLaneChangeTrajectory->UpdateSafetyDistanceCost(
+    LaneChangeTrajectories.OtherVehicleTrajectories(), mHorizonTime, LaneChangeTrajectories.SafetyDistanceFactor());
 
   std::cout << "===============================================================================" << std::endl;
-  std::cout << "Minimum Cost Trajectory:" << std::endl;
-  pMinimumLaneChangeTrajectory->PrintCost();
+  std::cout << "Lane Change Trajectory:" << std::endl;
+  mpLaneChangeTrajectory->PrintCost();
 
 
   if (FallbackLane != mTargetLane)
@@ -117,10 +115,9 @@ std::tuple<TTrajectory::TTrajectoryPtr,TVehicleState*> TChangeLaneState::Execute
     std::cout << "Minimum Fallback Trajectory to lane " << FallbackLane << ":" << std::endl;
     pMinimumFallbackTrajectory->PrintCost();
 
-
-    if (pMinimumFallbackTrajectory->SafetyDistanceCost() + kFallbackCostDelta < pMinimumLaneChangeTrajectory->SafetyDistanceCost())
+    if (pMinimumFallbackTrajectory->SafetyDistanceCost() * 2.0 < mpLaneChangeTrajectory->SafetyDistanceCost())
     {
-      pMinimumLaneChangeTrajectory = pMinimumFallbackTrajectory;
+      mpLaneChangeTrajectory = pMinimumFallbackTrajectory;
       mTargetLane = FallbackLane;
     }
   }
@@ -137,7 +134,7 @@ std::tuple<TTrajectory::TTrajectoryPtr,TVehicleState*> TChangeLaneState::Execute
 
 
 
-  return std::make_tuple(pMinimumLaneChangeTrajectory, pNextState);
+  return std::make_tuple(mpLaneChangeTrajectory, pNextState);
 }
 
 

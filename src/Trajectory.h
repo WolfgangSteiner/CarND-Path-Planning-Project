@@ -35,13 +35,19 @@ public:
     double aTargetVelocity,
     double aTargetD,
     double aDurationS,
-    double aDurationD);
+    double aDurationD,
+    double aDelayD=0.0);
 
   Eigen::VectorXd EvalAt(double t) const;
 
   double AccelerationCost(double aHorizonTime) const;
   double JerkCost(double aHorizonTime) const;
   double SafetyDistanceCost(const Eigen::MatrixXd& aTrajectory, double aHorizonTime) const;
+
+  void UpdateSafetyDistanceCost(
+    const std::vector<Eigen::MatrixXd>& aOtherTrajectories,
+    double aHorizonTime,
+    double aSafetyDistanceFactor);
 
   double MinVelocity() const;
   double MaxVelocity() const;
@@ -85,6 +91,7 @@ private:
   double mDurationS{0.0};
   double mDurationD{0.0};
   double mStartTime{0.0};
+  double mDelayD{0.0};
   double mTimeStep{0.02};
   double mCostDeltaT{0.1};
 

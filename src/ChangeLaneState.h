@@ -10,8 +10,12 @@
 class TChangeLaneState : public TVehicleState
 {
 public:
-  TChangeLaneState(int aStartLane, int aTargetLane)
-  : mStartLane(aStartLane)
+  TChangeLaneState(
+    TTrajectory::TTrajectoryPtr apLaneChangeTrajectory,
+    int aStartLane,
+    int aTargetLane)
+  : mpLaneChangeTrajectory{apLaneChangeTrajectory}
+  , mStartLane(aStartLane)
   , mTargetLane{aTargetLane}
   {}
 
@@ -26,6 +30,7 @@ public:
 private:
   int mStartLane;
   int mTargetLane;
+  TTrajectory::TTrajectoryPtr mpLaneChangeTrajectory;
 };
 
 

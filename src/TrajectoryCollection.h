@@ -18,6 +18,7 @@ public:
   void AddTrajectory(TTrajectory::TTrajectoryPtr apTrajectory);
   void SetOtherVehicleTrajectories(const std::vector<Eigen::MatrixXd>& aOtherVehicleTrajectories);
   void AddOtherVehicleTrajectories(const std::vector<Eigen::MatrixXd>& aOtherVehicleTrajectories);
+  const std::vector<Eigen::MatrixXd>& OtherVehicleTrajectories() const;
 
 public:
   using TTrajectoryList = std::deque<TTrajectory::TTrajectoryPtr>;
@@ -32,6 +33,7 @@ public:
   TTrajectoryList::iterator begin() { return mTrajectoryList.begin(); }
   TTrajectoryList::iterator end() { return mTrajectoryList.end(); }
 
+  double SafetyDistanceFactor() const { return mSafetyDistanceFactor; }
 
 private:
   void UpdateCostForTrajectory(TTrajectory::TTrajectoryPtr apTrajectory);

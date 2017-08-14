@@ -39,7 +39,7 @@ double TTrajectory::SLongitudinalSafetyDistanceCost(double aDistance, double aVe
   const double B = (c_max - c_min) / (std::exp(alpha * d1) - std::exp(alpha * d0));
   const double A = c_max - B * std::exp(alpha * d1);
 
-  if (aDistance > kSafetyDistance)
+  if (aDistance > kSafetyDistance || aVelocity <= 2.0)
   {
     return 0.0;
   }
@@ -86,6 +86,7 @@ static double SSafetyDistanceCost(
   assert(aLongitudinalDistance >= 0);
 
   const double kLongitudinalDistanceCost = TTrajectory::SLongitudinalSafetyDistanceCost(aLongitudinalDistance, aVelocity);
+  assert(kLongitudinalDistanceCost == kLongitudinalDistanceCost);
   const double kLateralDistanceMax = 3.75;
 
   if (aLateralDistance >= kLateralDistanceMax)
@@ -335,11 +336,13 @@ TTrajectory::TTrajectoryPtr TTrajectory::SVelocityKeepingTrajectory(
   double aTargetVelocity,
   double aTargetD,
   double aDurationS,
-  double aDurationD)
+  double aDurationD,
+  double aDelayD)
 {
   TTrajectoryPtr pTrajectory(new TTrajectory());
   pTrajectory->mStartState = aStartState;
   pTrajectory->mStartTime = aCurrentTime;
+  pTrajectory->mDelayD = aDelayD;
   pTrajectory->mEndState.setZero();
   pTrajectory->mEndState(1) = aTargetVelocity;
   pTrajectory->mEndState(3) = aTargetD;
@@ -368,10 +371,8 @@ TTrajectory::TTrajectoryPtr TTrajectory::SVelocityKeepingTrajectory(
     assert_vector(pTrajectory->mDCoeffs);
   }
 
-
+  pTrajectory->mEndState.head(3) = SEvalStateAt(pTrajectory->mSCoeffs, aDurationS);
   pTrajectory->mIsFinalized = true;
-
-  pTrajectory->mEndState.head(3) = SEvalStateAt(pTrajectory->mSCoeffs, aCurrentTime + aDurationS);
 
   return pTrajectory;
 }
@@ -385,16 +386,26 @@ Eigen::VectorXd TTrajectory::EvalAt(double t) const
   t -= mStartTime;
 
   VectorXd state_s = SEvalStateAt(mSCoeffs, std::min(t, mDurationS));
-  VectorXd state_d = SEvalStateAt(mDCoeffs, std::min(t, mDurationD));
-
   if (t > mDurationS)
   {
     state_s(0) += state_s(1) * (t - mDurationS);
   }
 
-  if (t > mDurationD)
+  VectorXd state_d = VectorXd::Zero(3);
+  if (t < mDelayD)
   {
-    state_d(0) += state_d(1) * (t - mDurationD);
+    state_d = mStartState.tail(3);
+    assert(state_d(0) < 0.0);
+  }
+  else
+  {
+    double td = t - mDelayD;
+    state_d = SEvalStateAt(mDCoeffs, std::min(td, mDurationD));
+
+    if (td > mDurationD)
+    {
+      state_d(0) += state_d(1) * (td - mDurationD);
+    }
   }
 
   VectorXd state(6);
@@ -417,7 +428,7 @@ double TTrajectory::DurationS() const
 
 double TTrajectory::DurationD() const
 {
-  return mDurationS;
+  return mDurationD;
 }
 
 
@@ -532,6 +543,23 @@ double TTrajectory::SafetyDistanceCost(
   return Cost / n;
 }
 
+//----------------------------------------------------------------------------------------------
+
+void TTrajectory::UpdateSafetyDistanceCost(
+  const std::vector<Eigen::MatrixXd>& aOtherTrajectories,
+  double aHorizonTime,
+  double aSafetyDistanceFactor)
+{
+  double lSafetyDistanceCost = 0;
+
+  for (const auto& iOtherTrajectory : aOtherTrajectories)
+  {
+    lSafetyDistanceCost = std::max(lSafetyDistanceCost, SafetyDistanceCost(iOtherTrajectory, aHorizonTime));
+  }
+
+  SetSafetyDistanceCost(aSafetyDistanceFactor * lSafetyDistanceCost);
+}
+
 
 //----------------------------------------------------------------------------------------------
 
@@ -623,6 +651,7 @@ void TTrajectory::PrintCost() const
     << " LC: "     << LaneCost()
     << " TC: "     << TimeCost()
     << " C: "      << Cost()
+    << " TDD: "    << mDelayD
     << std::endl;
 }
 

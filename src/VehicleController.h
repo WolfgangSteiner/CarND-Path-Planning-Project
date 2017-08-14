@@ -41,7 +41,7 @@ private:
   TSensorFusion mSensorFusion;
 
   double mCurrentTime{0.0};
-  double mPredictionHorizon{0.25};
+  double mPredictionHorizon{0.5};
   double mDisplayHorizon{2.0};
   bool mIsInitialized{false};
 };

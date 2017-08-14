@@ -289,7 +289,7 @@ the target velocity $\dot s$. For lane changing trajectories, the target $d$-coo
 (discretely) varied. These candidate trajectories are then evaluated using the following
 cost function:
 \begin{equation}
-J_{traj} = k_v J_{v} + k_a J_{a} + k_j J_{j} + J_{\Delta d} + J_{d} + k_{\rho} \underset{i}\max(J_{\rho}(i))
+J_{traj} = k_v J_{v} + k_a J_{a} + k_j J_{j} + J_{\Delta d} + k_L J_{d} + k_{\rho} \underset{i}\max(J_{\rho}(i))
 \end{equation}
 
 Here, $J_{v}$, $J_{a}$ and $J_{j}$ are terms that penalize the deviation from the target velocity,
@@ -338,10 +338,10 @@ different lanes and the cost is set to zero. Also, when the distance is greater 
 the safety distance $d_s(v)$ the cost is also set to zero.
 
 The middle lane is favorable to the other two lanes because it offers two possible direct
-lane changes for overtaking cars. The cost $J_d$ therefore slightly penalizes driving
+lane changes for overtaking cars. The cost $J_L$ therefore slightly penalizes driving
 on the left and right lanes:
 \begin{equation}
-J_d =
+J_L =
 \begin{cases}
 0.0 & \text{current lane is center lane} \\
 1.0 & \text{otherwise}
@@ -398,7 +398,7 @@ will return the \code{nullptr}. Consequently the lane change maneuver will end, 
 deallocated, and trajectory planning is returned to the parent keep lane state object.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Results and Outlook}
+\section{Results}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 The implemented path planner is able to safely navigate through highway traffic near the speed
 limit. Owing to the large planning horizon of 10s, the car slows down or switches lane with
@@ -423,9 +423,14 @@ completed (8-12).}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+\section{Outlook}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+There are many ways in which the path planner could be improved. More states could be added
+to the state machine that would implement following of leading vehicles at a predetermined
+safety distance or merging into an adjacent lane between other cars. Sometimes the car
+gets stuck behind a slow car with a second car slightly ahead on the middle lane. If the
+planner would slow down for a moment, it could direct the car to the third lane, overtaking
+both other cars. But a behavior like this would require to combine several trajectories 
 
 %----------------------------------------------------------------------------------------
 %	REFERENCE LIST
