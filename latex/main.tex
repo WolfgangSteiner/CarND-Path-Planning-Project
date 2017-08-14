@@ -291,7 +291,7 @@ J_{traj} = k_v J_{v} + k_a J_{a} + k_j J_{j} +  k_{\rho} \underset{i}\max(J_{\rh
 
 Here, $J_{v}$, $J_{a}$ and $J_{j}$ are terms that penalize the deviation from the target velocity,
 the maximum acceleration and the maximum jerk, respectively. They are calculated by integrating
-the respective cost functions over the planning horizon time $T_H$ which is set to $8s$.
+the respective cost functions over the planning horizon time $T_H$, which is set to $8s$.
 
 \begin{equation}
 J_{v} = \frac{1}{T_H}\int\limits_0^{T_{H}} \left(\sqrt{\dot s(t)^2 + \dot d(t)^2} - v_{max}\right)^2 dt
@@ -408,7 +408,7 @@ deallocated, and trajectory planning is returned to the parent keep lane state o
 \section{Results}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 The implemented path planner is able to safely navigate through highway traffic near the speed
-limit. Owing to the large planning horizon of 10s, the car slows down or switches lane with
+limit. Owing to the large planning horizon of 8s, the car slows down or switches lane with
 foresight when approaching a slower leading car from behind. It also keeps clear of faster
 cars that come up from behind. An example of a lane changing maneuver is shown in \figref{fallback}. In the maneuver shown, the lane change is interrupted by another car that
 overtakes on the middle lane. Because the lane changing trajectory has become unsafe, the
@@ -438,7 +438,7 @@ safety distance or merging into an adjacent lane between other cars. Sometimes t
 gets stuck behind a slow car with a second car slightly ahead on the middle lane. If the
 planner would slow down for a moment, it could direct the car to the third lane, overtaking
 both other cars. This kind of behavior could be implemented by adding a variable start time
-of the polynomial in the lateral direction to the generated lane change candidate trajectories.
+to the lateral direction polynomials of lane change candidate trajectories.
 
 The planner also occasionally has difficulties with the erratic driving behavior of the other
 cars. They tend to violently slow down and accelerate when trailing a slower car. While such a
