@@ -6,6 +6,8 @@
 //==============================================================================================
 #include "VehicleState.h"
 //==============================================================================================
+class TTrajectoryCollection;
+//==============================================================================================
 
 class TKeepLaneState : public TVehicleState
 {
@@ -18,7 +20,14 @@ public:
     const Eigen::VectorXd& aCurrentState,
     double aCurrentTime,
     const TSensorFusion& aSensorFusion) override;
-s};
+
+private:
+  void GenerateLaneChangingTrajectories(
+    TTrajectoryCollection& aTrajectories,
+    const Eigen::VectorXd& aCurrentState,
+    double aCurrentTime,
+    int aTargetLane) const;
+};
 
 
 //==============================================================================================
