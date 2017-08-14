@@ -14,7 +14,6 @@ public:
   TWaypoints();
 
 public:
-  //Eigen::Vector2d CalcFrenet(const Eigen::Vector2d& p, double theta) const;
   Eigen::Vector2d CalcFrenet(const Eigen::Vector2d& p, double s_start) const;
   Eigen::Vector2d getXY_interpolated(double s, double d) const;
   Eigen::Vector2d GetNormalAt(double s) const;
