@@ -4,7 +4,6 @@
 #ifndef OTHERCAR_H
 #define OTHERCAR_H
 //==============================================================================================
-#include "KalmanFilter.h"
 #include "Trajectory.h"
 //==============================================================================================
 #include <vector>
@@ -29,7 +28,6 @@ public:
   void Predict(double aDeltaT);
 
 private:
-  TKalmanFilter mKalmanFilter;
   Eigen::VectorXd mX;
 };
 
