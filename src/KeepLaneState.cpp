@@ -30,14 +30,19 @@ std::tuple<TTrajectory::TTrajectoryPtr, TVehicleState*> TKeepLaneState::Execute(
   // Trajectories that stay in the current lane:
   Trajectories.SetOtherVehicleTrajectories(ThisLaneVehicleTrajectories);
 
-  const double T_max = 10.0;
+  const double Ts_max = 8.0;
+  const double Ts_min = 2.0;
+  const double Ts_delta = 1.0;
+  const double Td_max = 4.0;
+  const double Td_min = 2.0;
+  const double Td_delta = 1.0;
 
   for (double v = 0; v <= mMaxVelocity; v += 1.0)
   {
-    for (double T = 1; T < T_max; T += 1.0)
+    for (double Ts = Ts_min; Ts < Ts_max; Ts += Ts_delta)
     {
       Trajectories.AddTrajectory(
-        TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kCurrentD, T, T));
+        TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kCurrentD, Ts, Ts));
     }
   }
 
@@ -57,10 +62,13 @@ std::tuple<TTrajectory::TTrajectoryPtr, TVehicleState*> TKeepLaneState::Execute(
 
     for (double v = 0; v <= mMaxVelocity; v += 1.0)
     {
-      for (double T = 1; T < T_max; T += 1.0)
+      for (double Ts = Ts_min; Ts < Ts_max; Ts += Ts_delta)
       {
-        Trajectories.AddTrajectory(
-          TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, T, kLaneChangeTime));
+        for (double Td = Td_min; Td < Td_max; Td += Td_delta)
+        {
+          Trajectories.AddTrajectory(
+            TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, Ts, Td));
+        }
       }
     }
   }
@@ -77,10 +85,13 @@ std::tuple<TTrajectory::TTrajectoryPtr, TVehicleState*> TKeepLaneState::Execute(
 
     for (double v = 0; v <= mMaxVelocity; v += 1.0)
     {
-      for (double T = 1; T < T_max; T += 1.0)
+      for (double Ts = Ts_min; Ts < Ts_max; Ts += Ts_delta)
       {
-        Trajectories.AddTrajectory(
-          TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, T, kLaneChangeTime));
+        for (double Td = Td_min; Td < Td_max; Td += Td_delta)
+        {
+          Trajectories.AddTrajectory(
+            TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, Ts, Td));
+        }
       }
     }
   }
@@ -99,10 +110,13 @@ std::tuple<TTrajectory::TTrajectoryPtr, TVehicleState*> TKeepLaneState::Execute(
 
     for (double v = 0; v <= mMaxVelocity; v += 1.0)
     {
-      for (double T = 1; T < T_max; T += 1.0)
+      for (double Ts = Ts_min; Ts < Ts_max; Ts += Ts_delta)
       {
-        Trajectories.AddTrajectory(
-          TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, T, kLaneChangeTime));
+        for (double Td = Td_min; Td < Td_max; Td += Td_delta)
+        {
+          Trajectories.AddTrajectory(
+            TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, Ts, Td));
+        }
       }
     }
   }
@@ -118,10 +132,13 @@ std::tuple<TTrajectory::TTrajectoryPtr, TVehicleState*> TKeepLaneState::Execute(
 
     for (double v = 0; v <= mMaxVelocity; v += 1.0)
     {
-      for (double T = 1; T < T_max; T += 1.0)
+      for (double Ts = Ts_min; Ts < Ts_max; Ts += Ts_delta)
       {
-        Trajectories.AddTrajectory(
-          TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, T, kLaneChangeTime));
+        for (double Td = Td_min; Td < Td_max; Td += Td_delta)
+        {
+          Trajectories.AddTrajectory(
+            TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, Ts, Td));
+        }
       }
     }
   }

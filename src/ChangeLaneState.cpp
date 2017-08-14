@@ -77,19 +77,27 @@ std::tuple<TTrajectory::TTrajectoryPtr,TVehicleState*> TChangeLaneState::Execute
     aSensorFusion.OtherVehicleTrajectoriesInTargetLane(
       aCurrentState, mTargetLane, mCostDeltaT, mHorizonTime));
 
+  double Ts_max = 8.0;
+  double Ts_min = 1.0;
+  double Ts_delta = 1.0;
+  double Td_max = 4.0;
+  double Td_min = 2.0;
+  double Td_delta = 1.0;
 
   for (double v = 0; v <= mMaxVelocity; v += 1.0)
   {
-    for (double T = 1; T < 10.0; T += 1.0)
+    for (double Ts = Ts_min; Ts < Ts_max; Ts += Ts_delta)
     {
-      LaneChangeTrajectories.AddTrajectory(
-        TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, T, kLaneChangeTime));
-
-
-      if (FallbackLane != mTargetLane)
+      for (double Td = Td_min; Td < Td_max; Td += Td_delta)
       {
-        FallbackTrajectories.AddTrajectory(
-            TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kFallbackD, T, kLaneChangeTime));
+        LaneChangeTrajectories.AddTrajectory(
+          TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kTargetD, Ts, Td));
+
+        if (FallbackLane != mTargetLane)
+        {
+          FallbackTrajectories.AddTrajectory(
+              TTrajectory::SVelocityKeepingTrajectory(aCurrentState, aCurrentTime, v, kFallbackD, Ts, Td));
+        }
       }
     }
   }
