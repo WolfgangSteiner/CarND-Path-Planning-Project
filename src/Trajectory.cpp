@@ -434,6 +434,7 @@ double TTrajectory::JerkCost(double aHorizonTime) const
 {
   double Cost = 0.0;
   const double n = aHorizonTime / mCostDeltaT;
+  const double kMaxJerk = 9.5;
 
   for (double t = 0; t < aHorizonTime; t+=mCostDeltaT)
   {
@@ -443,6 +444,12 @@ double TTrajectory::JerkCost(double aHorizonTime) const
     assert(Js == Js);
     assert_vector(mDCoeffs);
     assert(Jd == Jd);
+
+    if (abs(Js) >= kMaxJerk || abs(Jd) >= kMaxJerk)
+    {
+      Cost += 1000;
+    }
+
     Cost += (Jd*Jd + Js*Js);
   }
 
