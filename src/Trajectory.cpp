@@ -85,36 +85,13 @@ static double SSafetyDistanceCost(
   assert(aLongitudinalDistance >= 0);
 
   const double kLongitudinalDistanceCost = TTrajectory::SLongitudinalSafetyDistanceCost(aLongitudinalDistance, aVelocity);
-//  const double kLateralDistanceCost = TTrajectory::SLateralSafetyDistanceCost(aLateralDistance);
-
-
-//  if (aLongitudinalDistance < 4.5)
-//  {
-//    if (aLateralDistance > 2.0)
-//    {
-//      return kLateralDistanceCost;
-//    }
-//    else
-//    {
-//      // We have already crashed!
-//      return 1000;
-//    }
-//  }
   const double kLateralDistanceMax = 3.75;
-//  const double kLateralDistanceMin = 2.75;
-//  const double a = 1.0 * (kLateralDistanceMax - kLateralDistanceMin);
-//  const double b = -a * kLateralDistanceMax;
 
   if (aLateralDistance >= kLateralDistanceMax)
   {
     // Other car is on adjacent lane.
     return 0.0;
   }
-//  else if (aLateralDistance >= kLateralDistanceMin)
-//  {
-//    const double f = a * aLateralDistance + b;
-//    return kLongitudinalDistanceCost * f;
-//  }
   else
   {
     return kLongitudinalDistanceCost;
@@ -484,6 +461,7 @@ double TTrajectory::AccelerationCost(double aHorizonTime) const
   {
     const double As = SEvalAt(mSCoeffs, std::min(t, mDurationS), 2);
     const double Ad = SEvalAt(mDCoeffs, std::min(t, mDurationD), 2);
+
     Cost += (Ad*Ad + As*As);
   }
 
