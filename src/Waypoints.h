@@ -5,7 +5,6 @@
 #include <vector>
 #include "Waypoint.h"
 #include "Eigen-3.3/Eigen/Core"
-#include "spline.h"
 //==============================================================================================
 
 class TWaypoints
@@ -32,8 +31,6 @@ private:
 
 
 private:
-  tk::spline x_spline_;
-  tk::spline y_spline_;
   double max_s_;
 };
 

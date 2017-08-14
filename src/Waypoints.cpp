@@ -7,28 +7,37 @@
 #include "Waypoints.h"
 #include "Waypoint.h"
 #include "Utils.h"
+#include "spline.h"
 //======================================================================================================================
 using Eigen::Vector2d;
+//======================================================================================================================
+static tk::spline sSplineX;
+static tk::spline sSplineY;
+static bool sIsInitialized = false;
+
 //======================================================================================================================
 
 TWaypoints::TWaypoints()
 {
-  std::string map_file_ = "../data/highway_map.csv";
-  // The max s value before wrapping around the track back to 0
   max_s_ = 6945.554;
 
-  std::ifstream in_map_(map_file_.c_str(), std::ifstream::in);
-  std::string line;
-
-  while (getline(in_map_, line))
+  if (!sIsInitialized)
   {
-  	std::istringstream iss(line);
-  	double x, y, s, d_x, d_y;
-  	iss >> x >> y >> s >> d_x >> d_y;
-    waypoints_.push_back(Waypoint(x, y, s, d_x, d_y));
-  }
+    std::string map_file_ = "../data/highway_map.csv";
+    // The max s value before wrapping around the track back to 0
+    std::ifstream in_map_(map_file_.c_str(), std::ifstream::in);
+    std::string line;
 
-  fit_splines();
+    while (getline(in_map_, line))
+    {
+    	std::istringstream iss(line);
+    	double x, y, s, d_x, d_y;
+    	iss >> x >> y >> s >> d_x >> d_y;
+      waypoints_.push_back(Waypoint(x, y, s, d_x, d_y));
+    }
+    fit_splines();
+    sIsInitialized = true;
+  }
 }
 
 
@@ -52,7 +61,7 @@ const Waypoint& TWaypoints::at(int idx) const
 
 double TWaypoints::Error(const Eigen::Vector2d& p, double s) const
 {
-  return pow(p(0) - x_spline_(s), 2) + pow(p(1) - y_spline_(s), 2);
+  return pow(p(0) - sSplineX(s), 2) + pow(p(1) - sSplineY(s), 2);
 }
 
 
@@ -60,8 +69,8 @@ double TWaypoints::Error(const Eigen::Vector2d& p, double s) const
 
 double TWaypoints::ErrorDeriv(const Eigen::Vector2d& p, double s) const
 {
-  return -2.0 * (p(0) - x_spline_(s)) * x_spline_.deriv(1, s)
-         - 2.0 * (p(1) - y_spline_(s)) * y_spline_.deriv(1,s);
+  return -2.0 * (p(0) - sSplineX(s)) * sSplineX.deriv(1, s)
+         - 2.0 * (p(1) - sSplineY(s)) * sSplineY.deriv(1,s);
 }
 
 
@@ -85,7 +94,7 @@ Eigen::Vector2d TWaypoints::CalcFrenet(const Eigen::Vector2d& p, double aStartS)
 
   // From the established point on the spline find the offset vector to the target
   // point and do a component-wise divide by the normal vector:
-  const Vector2d p_spline(x_spline_(s), y_spline_(s));
+  const Vector2d p_spline(sSplineX(s), sSplineY(s));
   const Vector2d p_delta = (p - p_spline).array() / GetNormalAt(s).array();
 
   // Use the mean of the two resulting components as the d-coordinate:
@@ -98,7 +107,7 @@ Eigen::Vector2d TWaypoints::CalcFrenet(const Eigen::Vector2d& p, double aStartS)
 
 Vector2d TWaypoints::GetNormalAt(double s) const
 {
-  return Vector2d(-y_spline_.deriv(1, s), x_spline_.deriv(1, s));
+  return Vector2d(-sSplineY.deriv(1, s), sSplineX.deriv(1, s));
 }
 
 
@@ -116,7 +125,7 @@ Eigen::Vector2d TWaypoints::getXY_interpolated(double s, double d) const
     s += max_s_;
   }
 
-  return Vector2d(x_spline_(s), y_spline_(s)) + GetNormalAt(s) * d;
+  return Vector2d(sSplineX(s), sSplineY(s)) + GetNormalAt(s) * d;
 }
 
 
@@ -147,8 +156,8 @@ void TWaypoints::fit_splines()
   y_vec.push_back(first_wp.y_);
 
   std::cout << "Fitting splines...";
-  x_spline_.set_points(s_vec, x_vec);
-  y_spline_.set_points(s_vec, y_vec);
+  sSplineX.set_points(s_vec, x_vec);
+  sSplineY.set_points(s_vec, y_vec);
   std::cout << " done!" << std::endl;
 }
 
