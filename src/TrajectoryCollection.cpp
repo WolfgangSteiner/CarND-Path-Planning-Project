@@ -15,7 +15,7 @@ TTrajectoryCollection::TTrajectoryCollection(double aMaxVelocity, double aHorizo
 , mJerkCostFactor{0.025}
 , mTimeCostFactor{0.0}
 , mLaneOffsetFactor{0.5}
-, mLaneFactor{0.0}
+, mLaneFactor{3.0}
 , mSafetyDistanceFactor{1000}
 {}
 
