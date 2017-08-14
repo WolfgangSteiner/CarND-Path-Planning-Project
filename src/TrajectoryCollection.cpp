@@ -10,12 +10,12 @@
 TTrajectoryCollection::TTrajectoryCollection(double aMaxVelocity, double aHorizonTime)
 : mMaxVelocity(aMaxVelocity)
 , mHorizonTime(aHorizonTime)
-, mVelocityCostFactor{1.0}
+, mVelocityCostFactor{0.5}
 , mAccelerationCostFactor{1.0}
 , mJerkCostFactor{0.025}
 , mTimeCostFactor{0.0}
-, mLaneOffsetFactor{0.5}
-, mLaneFactor{3.0}
+, mLaneOffsetFactor{10.0}
+, mLaneFactor{0.0}
 , mSafetyDistanceFactor{1000}
 {}
 

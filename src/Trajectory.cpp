@@ -29,7 +29,7 @@ static void assert_vector(const Eigen::VectorXd& v)
 double TTrajectory::SLongitudinalSafetyDistanceCost(double aDistance, double aVelocity)
 {
   const double kMinPhysicalDistance = 5.0;
-  const double kMinDistance = 2.0 + kMinPhysicalDistance;
+  const double kMinDistance = 4.0 + kMinPhysicalDistance;
   const double kSafetyDistance = aVelocity * 2.0 + kMinPhysicalDistance;
   const double alpha = -0.5;
   const double c_max = 1.0;
@@ -112,9 +112,9 @@ static double SLaneOffsetCost(double aD)
 
   const double kLaneCenter = NUtils::SDForLaneNumber(kLaneNumber);
   const double kDistanceToLaneCenter = NUtils::SDistance(kLaneCenter, aD);
-  static const double alpha = 4.0;
+  static const double alpha = 1.0;
   static const double c_max = 1.0;
-  static const double c_min = 0.05;
+  static const double c_min = 0.1;
   static const double d0 = 0.25;
   static const double d1 = 0.5 * NUtils::SLaneWidth();
   static const double B = (c_max - c_min) / (std::exp(alpha * d1) - std::exp(alpha * d0));
@@ -448,7 +448,7 @@ double TTrajectory::JerkCost(double aHorizonTime) const
 
     if (abs(Js) >= kMaxJerk || abs(Jd) >= kMaxJerk)
     {
-      Cost += 1000;
+      return 1e6;
     }
 
     Cost += (Jd*Jd + Js*Js);
@@ -464,11 +464,18 @@ double TTrajectory::AccelerationCost(double aHorizonTime) const
 {
   double Cost = 0.0;
   const double n = aHorizonTime / mCostDeltaT;
+  const double kMaxAcceleration = 10.0;
 
   for (double t = 0; t < aHorizonTime; t+=mCostDeltaT)
   {
     const double As = SEvalAt(mSCoeffs, std::min(t, mDurationS), 2);
     const double Ad = SEvalAt(mDCoeffs, std::min(t, mDurationD), 2);
+
+    if (abs(As) >= kMaxAcceleration || abs(Ad) >= kMaxAcceleration)
+    {
+      return 1e6;
+    }
+
 
     Cost += (Ad*Ad + As*As);
   }

@@ -18,7 +18,7 @@ public:
     const Eigen::VectorXd& aCurrentState,
     double aCurrentTime,
     const TSensorFusion& aSensorFusion) override;
-};
+s};
 
 
 //==============================================================================================
