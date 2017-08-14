@@ -29,12 +29,13 @@ static void assert_vector(const Eigen::VectorXd& v)
 double TTrajectory::SLongitudinalSafetyDistanceCost(double aDistance, double aVelocity)
 {
   const double kMinPhysicalDistance = 5.0;
+  const double kMinDistance = 4.0 + kMinPhysicalDistance;
   const double kSafetyDistance = aVelocity * 2.0 + kMinPhysicalDistance;
   const double alpha = -0.25;
   const double c_max = 1.0;
   const double c_min = 0.01;
   const double d0 = kSafetyDistance;
-  const double d1 = kMinPhysicalDistance;
+  const double d1 = kMinDistance;
   const double B = (c_max - c_min) / (std::exp(alpha * d1) - std::exp(alpha * d0));
   const double A = c_max - B * std::exp(alpha * d1);
 
